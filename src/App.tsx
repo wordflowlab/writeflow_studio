@@ -11,6 +11,8 @@ import Settings from "@/pages/Settings";
 import AIProviders from "@/pages/AIProviders";
 import MCPServers from "@/pages/MCPServers";  
 import WritingPreferences from "@/pages/WritingPreferences";
+import EnvironmentPage from "@/pages/Environment";
+import Agents from "@/pages/Agents";
 import { ProjectsPage } from "@/pages/ProjectsPage";
 import { WorkspacePage } from "@/pages/WorkspacePage";
 import { useAppStore, Config, Workspace, SystemInfo } from "@/store/app";
@@ -53,10 +55,14 @@ function App() {
             <Route path="ai-providers" element={<AIProviders />} />
             <Route path="mcp-servers" element={<MCPServers />} />
             <Route path="writing-preferences" element={<WritingPreferences />} />
+            <Route path="environment" element={<EnvironmentPage />} />
+            <Route path="agents" element={<Agents />} />
           </Route>
           {/* 文档编辑器使用独立布局 */}
           <Route path="project/:projectId/editor" element={<DocumentEditor />} />
           <Route path="document/:documentId" element={<DocumentEditor />} />
+          <Route path="editor/:projectId" element={<DocumentEditor />} />
+          <Route path="editor/:projectId/:docId" element={<DocumentEditor />} />
         </Routes>
         <Toaster />
       </div>

@@ -48,9 +48,17 @@ async fn main() {
             
             // Environment management
             environment::check_environment,
+            environment::get_environment_summary,
             environment::install_nodejs,
             environment::install_writeflow_cli,
             environment::repair_environment,
+            
+            // Agent management
+            agent::list_agents,
+            agent::install_agent,
+            agent::set_agent_enabled,
+            agent::uninstall_agent,
+            agent::update_agent_version,
             
             // Configuration
             config::get_config,
