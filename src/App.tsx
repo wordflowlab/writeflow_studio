@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import MainLayout from "@/components/layout/MainLayout";
 import Dashboard from "@/pages/Dashboard";
+import { DashboardPage } from "@/pages/DashboardPage";
 import ProjectView from "@/pages/ProjectView";
 import DocumentEditor from "@/pages/DocumentEditor";
 import Settings from "@/pages/Settings";
@@ -49,8 +50,8 @@ function App() {
       <div className="min-h-screen bg-background font-sans antialiased">
         <Routes>
           <Route path="/" element={<MainLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route index element={<DashboardPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="workspace" element={<WorkspacePage />} />

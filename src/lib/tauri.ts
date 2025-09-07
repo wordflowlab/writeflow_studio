@@ -319,6 +319,11 @@ export const invoke = async (command: string, args?: Record<string, any>): Promi
       };
     }
 
+    case "get_ai_provider_stats": {
+      // Mock: 3 connected of 4 total
+      return { connected: 3, total: 4 };
+    }
+
     // Agent commands (mock)
     case "list_agents": {
       return [];
