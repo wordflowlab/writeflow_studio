@@ -1,0 +1,2278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WriteFlow Studio - 桌面版原型</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        /* 桌面应用自定义样式 */
+        .desktop-window {
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: #ffffff;
+            overflow: hidden;
+        }
+        
+        .titlebar {
+            height: 38px;
+            background: linear-gradient(to bottom, #f7f7f7, #e8e8e8);
+            border-bottom: 1px solid #d0d0d0;
+            -webkit-app-region: drag;
+        }
+        
+        .titlebar-controls {
+            -webkit-app-region: no-drag;
+        }
+        
+        .traffic-light {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .traffic-light:hover {
+            opacity: 0.8;
+        }
+        
+        .traffic-light.close {
+            background: linear-gradient(to bottom, #ff5f57, #ff4136);
+        }
+        
+        .traffic-light.minimize {
+            background: linear-gradient(to bottom, #ffbd2e, #ffa500);
+        }
+        
+        .traffic-light.maximize {
+            background: linear-gradient(to bottom, #28ca42, #28a745);
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding: 0 16px;
+        }
+        
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .sidebar-item:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        
+        .sidebar-item.active {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .sidebar-item i {
+            margin-right: 12px;
+            width: 18px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-connected {
+            background: #10b981;
+        }
+        
+        .status-error {
+            background: #ef4444;
+        }
+        
+        .status-warning {
+            background: #f59e0b;
+        }
+        
+        .status-testing {
+            background: #8b5cf6;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-bar {
+            height: 28px;
+            background: #f1f5f9;
+            border-top: 1px solid #e2e8f0;
+            font-size: 12px;
+        }
+        
+        .modal {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .toast {
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* 主题色彩变量 */
+        :root {
+            --primary: #3b82f6;
+            --primary-foreground: #ffffff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --background: #ffffff;
+            --foreground: #0f172a;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 select-none" x-data="app()">
+    <!-- 桌面窗口容器 -->
+    <div class="desktop-window mx-auto mt-8" style="width: 1400px; height: 900px;">
+        <!-- 自定义标题栏 -->
+        <div class="titlebar flex items-center justify-between px-4">
+            <div class="titlebar-controls flex items-center space-x-2">
+                <div class="traffic-light close" @click="closeWindow()"></div>
+                <div class="traffic-light minimize" @click="minimizeWindow()"></div>
+                <div class="traffic-light maximize" @click="maximizeWindow()"></div>
+            </div>
+            
+            <div class="text-sm font-medium text-gray-700 flex-1 text-center">
+                WriteFlow Studio
+            </div>
+            
+            <div class="w-16"></div> <!-- 平衡布局 -->
+        </div>
+        
+        <!-- 主要内容区域 -->
+        <div class="flex h-full" style="height: calc(100% - 66px);">
+            <!-- 侧边栏 -->
+            <nav class="sidebar">
+                <div class="p-4">
+                    <!-- 核心功能 -->
+                    <div class="sidebar-section">
+                        <div class="sidebar-header">核心功能</div>
+                        <div 
+                            class="sidebar-item" 
+                            :class="{ active: currentPage === 'dashboard' }"
+                            @click="currentPage = 'dashboard'"
+                        >
+                            <i data-lucide="layout-dashboard"></i>
+                            <span>仪表板</span>
+                        </div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'projects' }"
+                            @click="currentPage = 'projects'"
+                        >
+                            <i data-lucide="folder-open"></i>
+                            <span>项目管理</span>
+                        </div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'documents' }"
+                            @click="currentPage = 'documents'"
+                        >
+                            <i data-lucide="file-text"></i>
+                            <span>文档编辑</span>
+                        </div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'environment' }"
+                            @click="currentPage = 'environment'"
+                        >
+                            <i data-lucide="settings"></i>
+                            <span>环境管理</span>
+                        </div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'agents' }"
+                            @click="currentPage = 'agents'"
+                        >
+                            <i data-lucide="bot"></i>
+                            <span>Agent 管理</span>
+                        </div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'providers' }"
+                            @click="currentPage = 'providers'"
+                        >
+                            <i data-lucide="brain"></i>
+                            <span>AI 提供商</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 配置管理 -->
+                    <div class="sidebar-section">
+                        <div class="sidebar-header">配置管理</div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'mcp' }"
+                            @click="currentPage = 'mcp'"
+                        >
+                            <i data-lucide="server"></i>
+                            <span>MCP 服务器</span>
+                        </div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'preferences' }"
+                            @click="currentPage = 'preferences'"
+                        >
+                            <i data-lucide="user-cog"></i>
+                            <span>写作偏好</span>
+                        </div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'project-config' }"
+                            @click="currentPage = 'project-config'"
+                        >
+                            <i data-lucide="cog"></i>
+                            <span>项目配置</span>
+                        </div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'import-export' }"
+                            @click="currentPage = 'import-export'"
+                        >
+                            <i data-lucide="download"></i>
+                            <span>导入导出</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 帮助支持 -->
+                    <div class="sidebar-section">
+                        <div class="sidebar-header">帮助支持</div>
+                        <div 
+                            class="sidebar-item"
+                            :class="{ active: currentPage === 'help' }"
+                            @click="currentPage = 'help'"
+                        >
+                            <i data-lucide="help-circle"></i>
+                            <span>帮助中心</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            
+            <!-- 主内容区 -->
+            <main class="flex-1 flex flex-col">
+                <div class="flex-1 overflow-auto">
+                    <!-- 仪表板页面 -->
+                    <div x-show="currentPage === 'dashboard'" class="p-6">
+                        <div class="space-y-6">
+                            <!-- 页面标题 -->
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-semibold text-gray-900">仪表板</h1>
+                                    <p class="text-gray-600 mt-1">WriteFlow Studio 系统概览</p>
+                                </div>
+                                <button @click="refreshDashboard()" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                    <span>刷新数据</span>
+                                </button>
+                            </div>
+                            
+                            <!-- 系统状态卡片 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <!-- 系统健康度 -->
+                                <div class="card p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-gray-600 text-sm">系统健康度</p>
+                                            <p class="text-2xl font-bold text-gray-900" x-text="systemHealth + '%'"></p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                            <i data-lucide="heart" class="w-6 h-6 text-green-600"></i>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-600 h-2 rounded-full" :style="`width: ${systemHealth}%`"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 环境问题 -->
+                                <div class="card p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-gray-600 text-sm">环境问题</p>
+                                            <p class="text-2xl font-bold" :class="environmentIssues > 0 ? 'text-red-600' : 'text-gray-900'" x-text="environmentIssues"></p>
+                                        </div>
+                                        <div class="w-12 h-12 rounded-full flex items-center justify-center" :class="environmentIssues > 0 ? 'bg-red-100' : 'bg-gray-100'">
+                                            <i data-lucide="alert-circle" class="w-6 h-6" :class="environmentIssues > 0 ? 'text-red-600' : 'text-gray-600'"></i>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="text-sm" :class="environmentIssues > 0 ? 'text-red-600' : 'text-green-600'" x-text="environmentIssues > 0 ? '需要注意' : '运行正常'"></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- 已安装 Agent -->
+                                <div class="card p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-gray-600 text-sm">已安装 Agent</p>
+                                            <p class="text-2xl font-bold text-gray-900" x-text="installedAgents"></p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <i data-lucide="bot" class="w-6 h-6 text-blue-600"></i>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="text-sm text-gray-600">可用于写作任务</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- 连接的提供商 -->
+                                <div class="card p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-gray-600 text-sm">AI 提供商</p>
+                                            <p class="text-2xl font-bold text-gray-900" x-text="connectedProviders + '/' + totalProviders"></p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                            <i data-lucide="brain" class="w-6 h-6 text-purple-600"></i>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="text-sm text-gray-600">已连接服务</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 快速操作和最近活动 -->
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- 快速操作 -->
+                                <div class="card p-6">
+                                    <h2 class="text-lg font-semibold text-gray-900 mb-4">快速操作</h2>
+                                    <div class="space-y-3">
+                                        <button @click="currentPage = 'environment'" class="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <div class="flex items-center space-x-3">
+                                                <i data-lucide="settings" class="w-5 h-5 text-gray-600"></i>
+                                                <span class="text-gray-900">检查环境状态</span>
+                                            </div>
+                                            <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
+                                        </button>
+                                        <button @click="currentPage = 'agents'" class="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <div class="flex items-center space-x-3">
+                                                <i data-lucide="bot" class="w-5 h-5 text-gray-600"></i>
+                                                <span class="text-gray-900">浏览 Agent 市场</span>
+                                            </div>
+                                            <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
+                                        </button>
+                                        <button @click="currentPage = 'providers'" class="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <div class="flex items-center space-x-3">
+                                                <i data-lucide="brain" class="w-5 h-5 text-gray-600"></i>
+                                                <span class="text-gray-900">配置 AI 提供商</span>
+                                            </div>
+                                            <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 系统信息 -->
+                                <div class="card p-6">
+                                    <h2 class="text-lg font-semibold text-gray-900 mb-4">系统信息</h2>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">版本</span>
+                                            <span class="text-gray-900">v1.0.0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">运行时间</span>
+                                            <span class="text-gray-900">2小时 34分钟</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">本月处理文档</span>
+                                            <span class="text-gray-900" x-text="monthlyDocs + ' 个'"></span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">最后更新</span>
+                                            <span class="text-gray-900">今天 14:32</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 项目管理页面 -->
+                    <div x-show="currentPage === 'projects'" class="p-6">
+                        <div class="space-y-6">
+                            <!-- 页面标题 -->
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-semibold text-gray-900">项目管理</h1>
+                                    <p class="text-gray-600 mt-1">管理写作项目和工作区</p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <button @click="showModal = 'create-workspace'" class="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <i data-lucide="plus" class="w-4 h-4"></i>
+                                        <span>新建工作区</span>
+                                    </button>
+                                    <button @click="showModal = 'create-project'" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                        <i data-lucide="folder-plus" class="w-4 h-4"></i>
+                                        <span>新建项目</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 工作区选择器 -->
+                            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <i data-lucide="layers" class="w-5 h-5 text-gray-600"></i>
+                                        <div>
+                                            <h3 class="text-sm font-medium text-gray-900">当前工作区</h3>
+                                            <p class="text-sm text-gray-600" x-text="currentWorkspace.name"></p>
+                                        </div>
+                                    </div>
+                                    <button @click="showWorkspaceSelector = !showWorkspaceSelector" class="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <span x-text="currentWorkspace.name"></span>
+                                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- 工作区下拉列表 -->
+                                <div x-show="showWorkspaceSelector" class="mt-4 border-t border-gray-200 pt-4">
+                                    <div class="space-y-2">
+                                        <template x-for="workspace in workspaces" :key="workspace.id">
+                                            <div @click="switchWorkspace(workspace)" class="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-gray-50" :class="currentWorkspace.id === workspace.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-3 h-3 rounded-full" :class="workspace.status === 'active' ? 'bg-green-400' : 'bg-gray-400'"></div>
+                                                    <div>
+                                                        <h4 class="text-sm font-medium text-gray-900" x-text="workspace.name"></h4>
+                                                        <p class="text-xs text-gray-600" x-text="workspace.projects + ' 个项目'"></p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <span class="text-xs text-gray-500" x-text="workspace.lastAccess"></span>
+                                                    <i x-show="currentWorkspace.id === workspace.id" data-lucide="check" class="w-4 h-4 text-blue-600"></i>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 项目统计 -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-gray-600 text-sm">总项目数</p>
+                                            <p class="text-2xl font-bold text-gray-900" x-text="projectStats.total"></p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <i data-lucide="folder" class="w-6 h-6 text-blue-600"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-gray-600 text-sm">进行中</p>
+                                            <p class="text-2xl font-bold text-green-600" x-text="projectStats.active"></p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                            <i data-lucide="play" class="w-6 h-6 text-green-600"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-gray-600 text-sm">已完成</p>
+                                            <p class="text-2xl font-bold text-gray-900" x-text="projectStats.completed"></p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                                            <i data-lucide="check-circle" class="w-6 h-6 text-gray-600"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-gray-600 text-sm">本周新增</p>
+                                            <p class="text-2xl font-bold text-blue-600" x-text="projectStats.thisWeek"></p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <i data-lucide="plus-circle" class="w-6 h-6 text-blue-600"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 项目列表 -->
+                            <div class="bg-white border border-gray-200 rounded-lg">
+                                <div class="p-6 border-b border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="text-lg font-medium text-gray-900">我的项目</h3>
+                                        <div class="flex items-center space-x-3">
+                                            <!-- 搜索框 -->
+                                            <div class="relative">
+                                                <input x-model="projectSearch" type="text" placeholder="搜索项目..." class="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                                <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+                                            </div>
+                                            <!-- 过滤器 -->
+                                            <select x-model="projectFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                                <option value="all">全部项目</option>
+                                                <option value="active">进行中</option>
+                                                <option value="completed">已完成</option>
+                                                <option value="recent">最近访问</option>
+                                            </select>
+                                            <!-- 视图切换 -->
+                                            <div class="flex items-center border border-gray-300 rounded-lg">
+                                                <button @click="projectView = 'grid'" :class="projectView === 'grid' ? 'bg-gray-100' : ''" class="p-2 hover:bg-gray-100 transition-colors">
+                                                    <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+                                                </button>
+                                                <button @click="projectView = 'list'" :class="projectView === 'list' ? 'bg-gray-100' : ''" class="p-2 hover:bg-gray-100 transition-colors">
+                                                    <i data-lucide="list" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 项目网格视图 -->
+                                <div x-show="projectView === 'grid'" class="p-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        <template x-for="project in filteredProjects" :key="project.id">
+                                            <div @click="openProject(project)" class="border border-gray-200 rounded-lg p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group">
+                                                <div class="flex items-center justify-between mb-4">
+                                                    <div class="w-12 h-12 rounded-lg flex items-center justify-center text-2xl" :style="`background-color: ${project.color}20; color: ${project.color}`" x-text="project.icon"></div>
+                                                    <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button @click.stop="showProjectMenu(project)" class="p-1 hover:bg-gray-100 rounded">
+                                                            <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <h4 class="text-lg font-medium text-gray-900 mb-2" x-text="project.name"></h4>
+                                                <p class="text-gray-600 text-sm mb-4 line-clamp-2" x-text="project.description"></p>
+                                                <div class="flex items-center justify-between text-sm text-gray-500">
+                                                    <div class="flex items-center space-x-4">
+                                                        <span x-text="project.documents + ' 个文档'"></span>
+                                                        <span x-text="project.words + ' 字'"></span>
+                                                    </div>
+                                                    <span x-text="project.lastModified"></span>
+                                                </div>
+                                                <div class="mt-3 flex items-center justify-between">
+                                                    <div class="flex items-center space-x-2">
+                                                        <div class="w-2 h-2 rounded-full" :class="project.status === 'active' ? 'bg-green-400' : project.status === 'completed' ? 'bg-gray-400' : 'bg-yellow-400'"></div>
+                                                        <span class="text-xs text-gray-600" x-text="project.statusText"></span>
+                                                    </div>
+                                                    <div class="flex items-center space-x-1">
+                                                        <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                                            <div class="bg-blue-600 h-1.5 rounded-full transition-all" :style="`width: ${project.progress}%`"></div>
+                                                        </div>
+                                                        <span class="text-xs text-gray-500 ml-2" x-text="project.progress + '%'"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- 项目列表视图 -->
+                                <div x-show="projectView === 'list'" class="divide-y divide-gray-200">
+                                    <template x-for="project in filteredProjects" :key="project.id">
+                                        <div @click="openProject(project)" class="p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center space-x-4">
+                                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg" :style="`background-color: ${project.color}20; color: ${project.color}`" x-text="project.icon"></div>
+                                                    <div>
+                                                        <h4 class="text-lg font-medium text-gray-900" x-text="project.name"></h4>
+                                                        <p class="text-gray-600 text-sm" x-text="project.description"></p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center space-x-6 text-sm text-gray-500">
+                                                    <div class="text-center">
+                                                        <div class="text-gray-900 font-medium" x-text="project.documents"></div>
+                                                        <div>文档</div>
+                                                    </div>
+                                                    <div class="text-center">
+                                                        <div class="text-gray-900 font-medium" x-text="project.words"></div>
+                                                        <div>字数</div>
+                                                    </div>
+                                                    <div class="text-center">
+                                                        <div class="text-gray-900 font-medium" x-text="project.progress + '%'"></div>
+                                                        <div>进度</div>
+                                                    </div>
+                                                    <div class="text-center">
+                                                        <div class="text-gray-900 font-medium" x-text="project.lastModified"></div>
+                                                        <div>更新</div>
+                                                    </div>
+                                                    <button @click.stop="showProjectMenu(project)" class="p-1 hover:bg-gray-100 rounded">
+                                                        <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 文档编辑页面 -->
+                    <div x-show="currentPage === 'documents'" class="h-full flex">
+                        <!-- 文档导航侧边栏 -->
+                        <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+                            <!-- 项目信息头部 -->
+                            <div class="p-4 border-b border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" :style="`background-color: ${selectedProject.color}20; color: ${selectedProject.color}`" x-text="selectedProject.icon"></div>
+                                        <div>
+                                            <h3 class="font-medium text-gray-900" x-text="selectedProject.name"></h3>
+                                            <p class="text-xs text-gray-500" x-text="selectedProject.documents + ' 个文档'"></p>
+                                        </div>
+                                    </div>
+                                    <button @click="showModal = 'new-document'" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                        <i data-lucide="plus" class="w-4 h-4 text-gray-600"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 文档搜索 -->
+                            <div class="p-4 border-b border-gray-200">
+                                <div class="relative">
+                                    <input x-model="documentSearch" type="text" placeholder="搜索文档..." class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+                                </div>
+                            </div>
+
+                            <!-- 文档树 -->
+                            <div class="flex-1 overflow-auto">
+                                <div class="p-2">
+                                    <template x-for="doc in filteredDocuments" :key="doc.id">
+                                        <div @click="selectDocument(doc)" class="group flex items-center justify-between p-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors" :class="selectedDocument.id === doc.id ? 'bg-blue-50 border border-blue-200' : ''">
+                                            <div class="flex items-center space-x-2 flex-1">
+                                                <i :data-lucide="doc.type === 'folder' ? 'folder' : 'file-text'" class="w-4 h-4 text-gray-500"></i>
+                                                <span class="text-sm text-gray-700 truncate" x-text="doc.name"></span>
+                                                <span x-show="doc.modified" class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                            </div>
+                                            <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button @click.stop="showDocumentMenu(doc)" class="p-1 hover:bg-gray-200 rounded">
+                                                    <i data-lucide="more-horizontal" class="w-3 h-3"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 主编辑区域 -->
+                        <div class="flex-1 flex flex-col">
+                            <!-- 编辑器工具栏 -->
+                            <div class="h-14 border-b border-gray-200 bg-white px-4 flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center space-x-2">
+                                        <i data-lucide="file-text" class="w-4 h-4 text-gray-500"></i>
+                                        <span class="text-sm font-medium text-gray-900" x-text="selectedDocument.name || '选择一个文档'"></span>
+                                        <span x-show="selectedDocument.modified" class="text-xs text-blue-600">●</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1 border-l border-gray-200 pl-4">
+                                        <button class="p-1.5 hover:bg-gray-100 rounded transition-colors" title="加粗">
+                                            <i data-lucide="bold" class="w-4 h-4"></i>
+                                        </button>
+                                        <button class="p-1.5 hover:bg-gray-100 rounded transition-colors" title="斜体">
+                                            <i data-lucide="italic" class="w-4 h-4"></i>
+                                        </button>
+                                        <button class="p-1.5 hover:bg-gray-100 rounded transition-colors" title="链接">
+                                            <i data-lucide="link" class="w-4 h-4"></i>
+                                        </button>
+                                        <button class="p-1.5 hover:bg-gray-100 rounded transition-colors" title="代码">
+                                            <i data-lucide="code" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <button @click="toggleAIAssistant()" class="flex items-center space-x-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                        <span>AI 助手</span>
+                                    </button>
+                                    <button @click="togglePreview()" class="p-1.5 hover:bg-gray-100 rounded transition-colors" :class="showPreview ? 'bg-gray-100' : ''" title="预览">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </button>
+                                    <div class="text-xs text-gray-500">
+                                        <span x-text="selectedDocument.wordCount || 0"></span> 字
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 编辑器内容区 -->
+                            <div class="flex-1 flex">
+                                <!-- Markdown 编辑器 -->
+                                <div :class="showPreview ? 'w-1/2 border-r border-gray-200' : 'w-full'" class="flex flex-col">
+                                    <textarea 
+                                        x-model="selectedDocument.content"
+                                        @input="updateWordCount()"
+                                        placeholder="开始写作..."
+                                        class="flex-1 p-4 resize-none border-none focus:outline-none font-mono text-sm leading-relaxed"
+                                        style="min-height: 500px;"
+                                    ></textarea>
+                                </div>
+
+                                <!-- 预览面板 -->
+                                <div x-show="showPreview" class="w-1/2 bg-gray-50">
+                                    <div class="h-full overflow-auto">
+                                        <div class="p-4 prose prose-sm max-w-none">
+                                            <div x-html="renderMarkdown(selectedDocument.content)" class="min-h-96"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 文档大纲面板 -->
+                        <div x-show="showOutline" class="w-64 bg-white border-l border-gray-200 flex flex-col">
+                            <div class="p-4 border-b border-gray-200">
+                                <h3 class="font-medium text-gray-900">文档大纲</h3>
+                            </div>
+                            <div class="flex-1 overflow-auto p-2">
+                                <template x-for="heading in documentOutline" :key="heading.id">
+                                    <div @click="scrollToHeading(heading)" class="p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors" :style="`margin-left: ${(heading.level - 1) * 12}px`">
+                                        <span class="text-sm text-gray-700" x-text="heading.text"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 环境管理页面 -->
+                    <div x-show="currentPage === 'environment'" class="p-6">
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-semibold text-gray-900">环境管理</h1>
+                                    <p class="text-gray-600 mt-1">管理 WriteFlow 运行环境和依赖</p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <button @click="checkEnvironment()" class="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <i data-lucide="search" class="w-4 h-4"></i>
+                                        <span>重新检测</span>
+                                    </button>
+                                    <button @click="repairEnvironment()" :disabled="environmentIssues === 0" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                        <i data-lucide="wrench" class="w-4 h-4"></i>
+                                        <span>一键修复</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- 环境状态 -->
+                            <div class="card p-6">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h2 class="text-lg font-semibold text-gray-900">环境状态</h2>
+                                    <div class="flex items-center space-x-2">
+                                        <span :class="environmentIssues === 0 ? 'status-indicator status-connected' : 'status-indicator status-error'"></span>
+                                        <span class="text-sm font-medium" :class="environmentIssues === 0 ? 'text-green-600' : 'text-red-600'" x-text="environmentIssues === 0 ? '环境健康' : `${environmentIssues} 个问题`"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <!-- Node.js -->
+                                    <div class="space-y-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                                <i data-lucide="hexagon" class="w-5 h-5 text-green-600"></i>
+                                            </div>
+                                            <div>
+                                                <h3 class="font-medium text-gray-900">Node.js</h3>
+                                                <p class="text-sm text-gray-600">JavaScript 运行时</p>
+                                            </div>
+                                        </div>
+                                        <div class="pl-13">
+                                            <div class="flex items-center space-x-2">
+                                                <span class="status-indicator status-connected"></span>
+                                                <span class="text-sm text-gray-900">v20.11.0</span>
+                                            </div>
+                                            <p class="text-xs text-gray-600 mt-1">LTS 版本，运行正常</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- WriteFlow CLI -->
+                                    <div class="space-y-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                <i data-lucide="terminal" class="w-5 h-5 text-blue-600"></i>
+                                            </div>
+                                            <div>
+                                                <h3 class="font-medium text-gray-900">WriteFlow CLI</h3>
+                                                <p class="text-sm text-gray-600">命令行工具</p>
+                                            </div>
+                                        </div>
+                                        <div class="pl-13">
+                                            <div class="flex items-center space-x-2">
+                                                <span class="status-indicator status-connected"></span>
+                                                <span class="text-sm text-gray-900">v2.15.3</span>
+                                            </div>
+                                            <p class="text-xs text-gray-600 mt-1">最新版本</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 依赖包 -->
+                                    <div class="space-y-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                                <i data-lucide="package" class="w-5 h-5 text-purple-600"></i>
+                                            </div>
+                                            <div>
+                                                <h3 class="font-medium text-gray-900">依赖包</h3>
+                                                <p class="text-sm text-gray-600">相关依赖</p>
+                                            </div>
+                                        </div>
+                                        <div class="pl-13">
+                                            <div class="flex items-center space-x-2">
+                                                <span class="status-indicator status-connected"></span>
+                                                <span class="text-sm text-gray-900">12 个包</span>
+                                            </div>
+                                            <p class="text-xs text-gray-600 mt-1">全部版本正常</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Agent 管理页面 -->
+                    <div x-show="currentPage === 'agents'" class="p-6">
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-semibold text-gray-900">Agent 管理</h1>
+                                    <p class="text-gray-600 mt-1">管理和安装 WriteFlow Agent</p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <div class="relative">
+                                        <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                                        <input 
+                                            x-model="agentSearchQuery"
+                                            type="text" 
+                                            placeholder="搜索 Agent..." 
+                                            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <template x-for="agent in filteredAgents" :key="agent.id">
+                                    <div class="card p-6 hover:shadow-lg transition-shadow">
+                                        <div class="flex items-start justify-between mb-4">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                    <i :data-lucide="agent.icon" class="w-6 h-6 text-blue-600"></i>
+                                                </div>
+                                                <div>
+                                                    <h3 class="font-semibold text-gray-900" x-text="agent.name"></h3>
+                                                    <span class="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600" x-text="agent.category"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <p class="text-sm text-gray-600 mb-4" x-text="agent.description"></p>
+                                        
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-2">
+                                                <span x-show="agent.isInstalled" class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">已安装</span>
+                                            </div>
+                                            <div class="flex space-x-2">
+                                                <button 
+                                                    x-show="!agent.isInstalled"
+                                                    @click="installAgent(agent)"
+                                                    class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                                                >
+                                                    安装
+                                                </button>
+                                                <button 
+                                                    x-show="agent.isInstalled"
+                                                    @click="uninstallAgent(agent)"
+                                                    class="px-3 py-1 border border-red-300 text-red-600 text-sm rounded hover:bg-red-50 transition-colors"
+                                                >
+                                                    卸载
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI 提供商页面 -->
+                    <div x-show="currentPage === 'providers'" class="p-6">
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-semibold text-gray-900">AI 提供商</h1>
+                                    <p class="text-gray-600 mt-1">配置和管理 AI 模型提供商</p>
+                                </div>
+                                <button @click="showAddProviderDialog = true" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                    <span>添加提供商</span>
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <template x-for="provider in providers" :key="provider.id">
+                                    <div class="card p-6">
+                                        <div class="flex items-start justify-between mb-4">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="w-12 h-12 rounded-lg flex items-center justify-center" :class="provider.bgColor">
+                                                    <i :data-lucide="provider.icon" class="w-6 h-6 text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <h3 class="font-semibold text-gray-900" x-text="provider.name"></h3>
+                                                    <p class="text-sm text-gray-600" x-text="provider.modelName"></p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <span :class="provider.status === 'connected' ? 'status-indicator status-connected' : provider.status === 'testing' ? 'status-indicator status-testing' : 'status-indicator status-error'"></span>
+                                                <span class="text-xs font-medium" :class="provider.status === 'connected' ? 'text-green-600' : provider.status === 'testing' ? 'text-purple-600' : 'text-red-600'" x-text="provider.statusText"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="space-y-2 mb-4">
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-gray-600">最大 Token</span>
+                                                <span class="text-gray-900" x-text="provider.maxTokens.toLocaleString()"></span>
+                                            </div>
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-gray-600">上下文长度</span>
+                                                <span class="text-gray-900" x-text="provider.contextLength.toLocaleString()"></span>
+                                            </div>
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-gray-600">最后测试</span>
+                                                <span class="text-gray-900" x-text="provider.lastTested"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-center space-x-2">
+                                            <button @click="testProviderConnection(provider)" :disabled="provider.status === 'testing'" class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+                                                <span x-text="provider status === 'testing' ? '测试中...' : '测试连接'"></span>
+                                            </button>
+                                            <button @click="deleteProvider(provider)" class="px-3 py-2 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50 transition-colors">
+                                                <i data-lucide="trash" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- MCP 服务器页面 -->
+                    <div x-show="currentPage === 'mcp'" class="p-6">
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-semibold text-gray-900">MCP 服务器</h1>
+                                    <p class="text-gray-600 mt-1">Model Context Protocol 服务器配置和管理</p>
+                                </div>
+                                <button @click="showAddMcpDialog = true" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                    <span>添加服务器</span>
+                                </button>
+                            </div>
+                            
+                            <!-- MCP 服务器列表 -->
+                            <div class="space-y-4">
+                                <template x-for="server in mcpServers" :key="server.id">
+                                    <div class="card p-6">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-4">
+                                                <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                                    <i data-lucide="server" class="w-6 h-6 text-indigo-600"></i>
+                                                </div>
+                                                <div>
+                                                    <h3 class="font-semibold text-gray-900" x-text="server.name"></h3>
+                                                    <p class="text-sm text-gray-600" x-text="server.description"></p>
+                                                    <div class="flex items-center space-x-4 mt-1">
+                                                        <span class="text-xs text-gray-500" x-text="server.endpoint"></span>
+                                                        <div class="flex items-center space-x-1">
+                                                            <span :class="server.status === 'connected' ? 'status-indicator status-connected' : 'status-indicator status-error'"></span>
+                                                            <span class="text-xs" :class="server.status === 'connected' ? 'text-green-600' : 'text-red-600'" x-text="server.statusText"></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <button @click="testMcpConnection(server)" class="px-3 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                                                    测试连接
+                                                </button>
+                                                <button @click="toggleMcpServer(server)" :class="server.enabled ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-700'" class="px-3 py-2 rounded text-sm transition-colors">
+                                                    <span x-text="server.enabled ? '启用中' : '已禁用'"></span>
+                                                </button>
+                                                <button @click="deleteMcpServer(server)" class="px-3 py-2 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50">
+                                                    <i data-lucide="trash" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 写作偏好页面 -->
+                    <div x-show="currentPage === 'preferences'" class="p-6">
+                        <div class="space-y-6">
+                            <div>
+                                <h1 class="text-2xl font-semibold text-gray-900">写作偏好</h1>
+                                <p class="text-gray-600 mt-1">配置你的写作风格和偏好设置</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- 基础设置 -->
+                                <div class="card p-6">
+                                    <h2 class="text-lg font-semibold text-gray-900 mb-4">基础设置</h2>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-900 mb-2">默认语言</label>
+                                            <select x-model="preferences.defaultLanguage" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                <option value="zh-CN">中文（简体）</option>
+                                                <option value="zh-TW">中文（繁体）</option>
+                                                <option value="en">English</option>
+                                                <option value="ja">日本語</option>
+                                                <option value="ko">한국어</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-900 mb-2">写作风格</label>
+                                            <select x-model="preferences.writingStyle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                <option value="formal">正式</option>
+                                                <option value="casual">休闲</option>
+                                                <option value="academic">学术</option>
+                                                <option value="creative">创意</option>
+                                                <option value="business">商务</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-900 mb-2">输出长度</label>
+                                            <select x-model="preferences.outputLength" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                <option value="short">简短</option>
+                                                <option value="medium">中等</option>
+                                                <option value="long">详细</option>
+                                                <option value="auto">自动</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 高级设置 -->
+                                <div class="card p-6">
+                                    <h2 class="text-lg font-semibold text-gray-900 mb-4">高级设置</h2>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-900">自动保存</label>
+                                                <p class="text-xs text-gray-600">自动保存写作内容</p>
+                                            </div>
+                                            <button @click="preferences.autoSave = !preferences.autoSave" :class="preferences.autoSave ? 'bg-blue-600' : 'bg-gray-300'" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                                                <span :class="preferences.autoSave ? 'translate-x-6' : 'translate-x-1'" class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                                            </button>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-900">实时建议</label>
+                                                <p class="text-xs text-gray-600">显示实时写作建议</p>
+                                            </div>
+                                            <button @click="preferences.realTimeSuggestions = !preferences.realTimeSuggestions" :class="preferences.realTimeSuggestions ? 'bg-blue-600' : 'bg-gray-300'" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                                                <span :class="preferences.realTimeSuggestions ? 'translate-x-6' : 'translate-x-1'" class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                                            </button>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-900">智能补全</label>
+                                                <p class="text-xs text-gray-600">启用 AI 智能补全</p>
+                                            </div>
+                                            <button @click="preferences.smartCompletion = !preferences.smartCompletion" :class="preferences.smartCompletion ? 'bg-blue-600' : 'bg-gray-300'" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                                                <span :class="preferences.smartCompletion ? 'translate-x-6' : 'translate-x-1'" class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-900 mb-2">创意度设置</label>
+                                            <input type="range" x-model="preferences.creativity" min="0" max="100" class="w-full" />
+                                            <div class="flex justify-between text-xs text-gray-600 mt-1">
+                                                <span>保守</span>
+                                                <span>平衡</span>
+                                                <span>创新</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 保存按钮 -->
+                            <div class="flex justify-end">
+                                <button @click="savePreferences()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    保存偏好设置
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 项目配置页面 -->
+                    <div x-show="currentPage === 'project-config'" class="p-6">
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-semibold text-gray-900">项目配置</h1>
+                                    <p class="text-gray-600 mt-1">管理你的写作项目和模板</p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <button @click="showImportDialog = true" class="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <i data-lucide="download" class="w-4 h-4"></i>
+                                        <span>导入配置</span>
+                                    </button>
+                                    <button @click="exportConfiguration()" class="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <i data-lucide="upload" class="w-4 h-4"></i>
+                                        <span>导出配置</span>
+                                    </button>
+                                    <button @click="showAddProjectDialog = true" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                        <i data-lucide="plus" class="w-4 h-4"></i>
+                                        <span>新建项目</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- 项目列表 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <template x-for="project in projects" :key="project.id">
+                                    <div class="card p-6 hover:shadow-lg transition-shadow">
+                                        <div class="flex items-start justify-between mb-4">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="w-12 h-12 rounded-lg flex items-center justify-center" :class="project.color">
+                                                    <i :data-lucide="project.icon" class="w-6 h-6 text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <h3 class="font-semibold text-gray-900" x-text="project.name"></h3>
+                                                    <p class="text-sm text-gray-600" x-text="project.type"></p>
+                                                </div>
+                                            </div>
+                                            <button @click="toggleProjectFavorite(project)" class="p-1 hover:bg-gray-100 rounded">
+                                                <i :data-lucide="project.isFavorite ? 'heart' : 'heart'" :class="project.isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <p class="text-sm text-gray-600 mb-4" x-text="project.description"></p>
+                                        
+                                        <div class="flex items-center justify-between text-xs text-gray-500 mb-4">
+                                            <span x-text="project.updatedAt"></span>
+                                            <span x-text="`${project.documentCount} 个文档`"></span>
+                                        </div>
+                                        
+                                        <div class="flex space-x-2">
+                                            <button @click="editProject(project)" class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+                                                编辑
+                                            </button>
+                                            <button @click="duplicateProject(project)" class="px-3 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+                                                复制
+                                            </button>
+                                            <button @click="deleteProject(project)" class="px-3 py-2 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50 transition-colors">
+                                                <i data-lucide="trash" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 帮助中心页面 -->
+                    <div x-show="currentPage === 'help'" class="p-6">
+                        <div class="space-y-6">
+                            <div>
+                                <h1 class="text-2xl font-semibold text-gray-900">帮助中心</h1>
+                                <p class="text-gray-600 mt-1">获取帮助和支持信息</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- 快速入门 -->
+                                <div class="card p-6">
+                                    <h2 class="text-lg font-semibold text-gray-900 mb-4">快速入门</h2>
+                                    <div class="space-y-3">
+                                        <a href="#" class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i data-lucide="play-circle" class="w-5 h-5 text-blue-600"></i>
+                                            <span class="text-gray-900">新手教程</span>
+                                        </a>
+                                        <a href="#" class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i data-lucide="book-open" class="w-5 h-5 text-blue-600"></i>
+                                            <span class="text-gray-900">用户手册</span>
+                                        </a>
+                                        <a href="#" class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i data-lucide="video" class="w-5 h-5 text-blue-600"></i>
+                                            <span class="text-gray-900">视频教程</span>
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <!-- 支持信息 -->
+                                <div class="card p-6">
+                                    <h2 class="text-lg font-semibold text-gray-900 mb-4">支持信息</h2>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <h3 class="font-medium text-gray-900">版本信息</h3>
+                                            <p class="text-sm text-gray-600">WriteFlow Studio v1.0.0</p>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-medium text-gray-900">技术支持</h3>
+                                            <p class="text-sm text-gray-600">support@writeflow.ai</p>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-medium text-gray-900">在线文档</h3>
+                                            <p class="text-sm text-gray-600">docs.writeflow.ai</p>
+                                        </div>
+                                        <button @click="checkForUpdates()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                            检查更新
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 其他页面占位符 -->
+                    <div x-show="!['dashboard', 'environment', 'agents', 'providers', 'mcp', 'preferences', 'projects', 'help'].includes(currentPage)" class="p-6">
+                        <div class="card p-8 text-center">
+                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i data-lucide="construction" class="w-8 h-8 text-gray-600"></i>
+                            </div>
+                            <h2 class="text-xl font-semibold text-gray-900 mb-2">功能开发中</h2>
+                            <p class="text-gray-600" x-text="`${getPageTitle()} 功能正在开发中，敬请期待...`"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 状态栏 -->
+                <div class="status-bar flex items-center justify-between px-4 text-gray-600">
+                    <div class="flex items-center space-x-4">
+                        <span>WriteFlow Studio v1.0.0</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="status-indicator status-connected"></span>
+                            <span>系统正常</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span x-text="`已安装 ${installedAgents} 个 Agent`"></span>
+                        <span x-text="`${connectedProviders}/${totalProviders} 个提供商已连接`"></span>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- 添加提供商对话框 -->
+    <div x-show="showAddProviderDialog" x-transition class="fixed inset-0 modal flex items-center justify-center z-50">
+        <div class="modal-content w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">添加 AI 提供商</h2>
+                    <button @click="showAddProviderDialog = false" class="p-1 hover:bg-gray-100 rounded">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-2">配置名称</label>
+                        <input x-model="newProvider.name" type="text" placeholder="输入配置名称" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-2">API 密钥</label>
+                        <input x-model="newProvider.apiKey" type="password" placeholder="输入 API 密钥" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-2">模型名称</label>
+                        <input x-model="newProvider.modelName" type="text" placeholder="例如: gpt-4-turbo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button @click="showAddProviderDialog = false" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                    取消
+                </button>
+                <button @click="addProvider()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    添加并测试
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加 MCP 服务器对话框 -->
+    <div x-show="showAddMcpDialog" x-transition class="fixed inset-0 modal flex items-center justify-center z-50">
+        <div class="modal-content w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">添加 MCP 服务器</h2>
+                    <button @click="showAddMcpDialog = false" class="p-1 hover:bg-gray-100 rounded">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-2">服务器名称</label>
+                        <input x-model="newMcpServer.name" type="text" placeholder="输入服务器名称" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-2">端点地址</label>
+                        <input x-model="newMcpServer.endpoint" type="text" placeholder="例如: http://localhost:3000" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-2">描述</label>
+                        <textarea x-model="newMcpServer.description" placeholder="服务器功能描述" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button @click="showAddMcpDialog = false" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                    取消
+                </button>
+                <button @click="addMcpServer()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    添加服务器
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加项目对话框 -->
+    <div x-show="showAddProjectDialog" x-transition class="fixed inset-0 modal flex items-center justify-center z-50">
+        <div class="modal-content w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">新建项目</h2>
+                    <button @click="showAddProjectDialog = false" class="p-1 hover:bg-gray-100 rounded">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-2">项目名称</label>
+                        <input x-model="newProject.name" type="text" placeholder="输入项目名称" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-2">项目类型</label>
+                        <select x-model="newProject.type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="academic">学术论文</option>
+                            <option value="business">商业文档</option>
+                            <option value="creative">创意写作</option>
+                            <option value="technical">技术文档</option>
+                            <option value="blog">博客文章</option>
+                            <option value="report">报告</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-2">项目描述</label>
+                        <textarea x-model="newProject.description" placeholder="描述项目内容和目标" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button @click="showAddProjectDialog = false" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                    取消
+                </button>
+                <button @click="addProject()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    创建项目
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 导入配置对话框 -->
+    <div x-show="showImportDialog" x-transition class="fixed inset-0 modal flex items-center justify-center z-50">
+        <div class="modal-content w-full max-w-lg mx-4">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">导入配置</h2>
+                    <button @click="showImportDialog = false" class="p-1 hover:bg-gray-100 rounded">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-400 mx-auto mb-4"></i>
+                    <p class="text-gray-600 mb-2">拖拽配置文件到此处，或</p>
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        选择文件
+                    </button>
+                    <p class="text-xs text-gray-500 mt-2">支持 .json, .yaml 格式</p>
+                </div>
+            </div>
+            
+            <div class="p-6 border-t border-gray-200 flex justify-end">
+                <button @click="showImportDialog = false" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 通知 -->
+    <div x-show="toast.show" x-transition class="fixed top-4 right-4 z-50">
+        <div :class="toast.type === 'success' ? 'bg-green-600' : toast.type === 'error' ? 'bg-red-600' : 'bg-blue-600'" class="toast text-white px-4 py-3 rounded-lg flex items-center space-x-3">
+            <i :data-lucide="toast.type === 'success' ? 'check' : toast.type === 'error' ? 'x' : 'info'" class="w-5 h-5"></i>
+            <span x-text="toast.message"></span>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        function app() {
+            return {
+                currentPage: 'dashboard',
+                systemHealth: 95,
+                environmentIssues: 0,
+                installedAgents: 8,
+                connectedProviders: 3,
+                totalProviders: 4,
+                monthlyDocs: 24,
+                agentSearchQuery: '',
+                showAddProviderDialog: false,
+                showAddMcpDialog: false,
+                showAddProjectDialog: false,
+                showImportDialog: false,
+                
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'info'
+                },
+                
+                newProvider: {
+                    name: '',
+                    apiKey: '',
+                    modelName: ''
+                },
+                
+                newMcpServer: {
+                    name: '',
+                    endpoint: '',
+                    description: ''
+                },
+                
+                newProject: {
+                    name: '',
+                    type: 'academic',
+                    description: ''
+                },
+
+                // 项目管理相关数据
+                currentWorkspace: {
+                    id: 1,
+                    name: '个人工作区',
+                    projects: 5
+                },
+                
+                workspaces: [
+                    { id: 1, name: '个人工作区', projects: 5, status: 'active', lastAccess: '刚刚' },
+                    { id: 2, name: '学术研究', projects: 3, status: 'active', lastAccess: '昨天' },
+                    { id: 3, name: '团队协作', projects: 8, status: 'active', lastAccess: '2天前' }
+                ],
+                
+                projectStats: {
+                    total: 12,
+                    active: 8,
+                    completed: 3,
+                    thisWeek: 2
+                },
+                
+                managedProjects: [
+                    {
+                        id: 1,
+                        name: '毕业论文',
+                        description: '深度学习在自然语言处理中的应用研究',
+                        icon: '📄',
+                        color: '#3b82f6',
+                        status: 'active',
+                        statusText: '进行中',
+                        progress: 65,
+                        documents: 12,
+                        words: 23500,
+                        lastModified: '今天'
+                    },
+                    {
+                        id: 2,
+                        name: '产品文档',
+                        description: 'WriteFlow Studio 用户手册和 API 文档',
+                        icon: '📚',
+                        color: '#10b981',
+                        status: 'active',
+                        statusText: '进行中',
+                        progress: 40,
+                        documents: 18,
+                        words: 31200,
+                        lastModified: '昨天'
+                    },
+                    {
+                        id: 3,
+                        name: '创意小说',
+                        description: '科幻题材中篇小说集',
+                        icon: '✍️',
+                        color: '#8b5cf6',
+                        status: 'completed',
+                        statusText: '已完成',
+                        progress: 100,
+                        documents: 8,
+                        words: 45000,
+                        lastModified: '1周前'
+                    },
+                    {
+                        id: 4,
+                        name: '技术博客',
+                        description: 'AI 和机器学习技术分享',
+                        icon: '🔬',
+                        color: '#f59e0b',
+                        status: 'active',
+                        statusText: '进行中',
+                        progress: 25,
+                        documents: 6,
+                        words: 8700,
+                        lastModified: '2天前'
+                    }
+                ],
+                
+                // 文档编辑相关数据
+                selectedProject: {
+                    id: 1,
+                    name: '毕业论文',
+                    icon: '📄',
+                    color: '#3b82f6',
+                    documents: 12
+                },
+                
+                selectedDocument: {
+                    id: 1,
+                    name: '第一章：引言',
+                    content: '# 第一章：引言\n\n## 1.1 研究背景\n\n随着人工智能技术的快速发展...\n\n## 1.2 研究意义\n\n本研究具有重要的理论意义和实践价值...',
+                    wordCount: 1250,
+                    modified: false
+                },
+                
+                documentTree: [
+                    {
+                        id: 1,
+                        name: '第一章：引言',
+                        type: 'document',
+                        modified: false
+                    },
+                    {
+                        id: 2,
+                        name: '第二章：文献综述',
+                        type: 'document',
+                        modified: true
+                    },
+                    {
+                        id: 3,
+                        name: '第三章：方法论',
+                        type: 'document',
+                        modified: false
+                    },
+                    {
+                        id: 4,
+                        name: '图表资料',
+                        type: 'folder',
+                        children: [
+                            { id: 41, name: '图表1：数据分布', type: 'document', modified: false },
+                            { id: 42, name: '图表2：模型架构', type: 'document', modified: false }
+                        ]
+                    }
+                ],
+                
+                documentOutline: [
+                    { id: 1, text: '引言', level: 1 },
+                    { id: 2, text: '研究背景', level: 2 },
+                    { id: 3, text: '研究意义', level: 2 },
+                    { id: 4, text: '论文结构', level: 2 }
+                ],
+                
+                // UI 状态
+                showModal: null,
+                showWorkspaceSelector: false,
+                projectSearch: '',
+                projectFilter: 'all',
+                projectView: 'grid',
+                documentSearch: '',
+                showPreview: false,
+                showOutline: true,
+                
+                preferences: {
+                    defaultLanguage: 'zh-CN',
+                    writingStyle: 'formal',
+                    outputLength: 'medium',
+                    autoSave: true,
+                    realTimeSuggestions: true,
+                    smartCompletion: true,
+                    creativity: 50
+                },
+                
+                mcpServers: [
+                    {
+                        id: 1,
+                        name: 'File System Server',
+                        endpoint: 'http://localhost:3001',
+                        description: '提供文件系统访问能力',
+                        status: 'connected',
+                        statusText: '已连接',
+                        enabled: true
+                    },
+                    {
+                        id: 2,
+                        name: 'Web Search Server',
+                        endpoint: 'http://localhost:3002',
+                        description: '提供网络搜索功能',
+                        status: 'connected',
+                        statusText: '已连接',
+                        enabled: true
+                    },
+                    {
+                        id: 3,
+                        name: 'Database Server',
+                        endpoint: 'http://localhost:3003',
+                        description: '数据库查询和管理',
+                        status: 'error',
+                        statusText: '连接失败',
+                        enabled: false
+                    }
+                ],
+                
+                projects: [
+                    {
+                        id: 1,
+                        name: '年度报告项目',
+                        type: '商业文档',
+                        description: '公司2024年度业务报告撰写',
+                        icon: 'briefcase',
+                        color: 'bg-blue-600',
+                        isFavorite: true,
+                        updatedAt: '今天 15:30',
+                        documentCount: 12
+                    },
+                    {
+                        id: 2,
+                        name: '学术论文集',
+                        type: '学术写作',
+                        description: '机器学习相关研究论文整理',
+                        icon: 'graduation-cap',
+                        color: 'bg-green-600',
+                        isFavorite: false,
+                        updatedAt: '昨天 09:15',
+                        documentCount: 8
+                    },
+                    {
+                        id: 3,
+                        name: '产品文档',
+                        type: '技术文档',
+                        description: 'API 文档和用户指南',
+                        icon: 'book-open',
+                        color: 'bg-purple-600',
+                        isFavorite: true,
+                        updatedAt: '3天前',
+                        documentCount: 24
+                    },
+                    {
+                        id: 4,
+                        name: '创意写作集',
+                        type: '创意写作',
+                        description: '短篇小说和散文创作',
+                        icon: 'pen-tool',
+                        color: 'bg-pink-600',
+                        isFavorite: false,
+                        updatedAt: '1周前',
+                        documentCount: 15
+                    }
+                ],
+                
+                providers: [
+                    {
+                        id: 1,
+                        name: 'OpenAI GPT-4',
+                        modelName: 'gpt-4-turbo',
+                        icon: 'brain',
+                        bgColor: 'bg-green-500',
+                        status: 'connected',
+                        statusText: '已连接',
+                        maxTokens: 4096,
+                        contextLength: 128000,
+                        lastTested: '刚刚'
+                    },
+                    {
+                        id: 2,
+                        name: 'Anthropic Claude',
+                        modelName: 'claude-3-sonnet',
+                        icon: 'zap',
+                        bgColor: 'bg-orange-500',
+                        status: 'connected',
+                        statusText: '已连接',
+                        maxTokens: 4096,
+                        contextLength: 200000,
+                        lastTested: '5分钟前'
+                    },
+                    {
+                        id: 3,
+                        name: 'DeepSeek Chat',
+                        modelName: 'deepseek-chat',
+                        icon: 'eye',
+                        bgColor: 'bg-blue-500',
+                        status: 'error',
+                        statusText: '连接失败',
+                        maxTokens: 4096,
+                        contextLength: 32000,
+                        lastTested: '1小时前'
+                    }
+                ],
+                
+                agents: [
+                    {
+                        id: 1,
+                        name: '论文写作助手',
+                        category: '学术写作',
+                        description: '专业的学术论文写作助手，支持多种引用格式和学科规范',
+                        icon: 'graduation-cap',
+                        isInstalled: true
+                    },
+                    {
+                        id: 2,
+                        name: 'PPT 大纲生成器',
+                        category: '商务文档',
+                        description: '智能生成演示文稿大纲和内容框架，提升演示效果',
+                        icon: 'presentation',
+                        isInstalled: false
+                    },
+                    {
+                        id: 3,
+                        name: '小说情节助手',
+                        category: '创意写作',
+                        description: '协助构建小说情节，提供人物设定和故事发展建议',
+                        icon: 'book-open',
+                        isInstalled: true
+                    },
+                    {
+                        id: 4,
+                        name: 'API 文档生成',
+                        category: '技术文档',
+                        description: '自动生成标准化的 API 文档，支持多种编程语言',
+                        icon: 'code',
+                        isInstalled: false
+                    }
+                ],
+                
+                get filteredAgents() {
+                    let filtered = this.agents;
+                    if (this.agentSearchQuery) {
+                        const query = this.agentSearchQuery.toLowerCase();
+                        filtered = filtered.filter(agent => 
+                            agent.name.toLowerCase().includes(query) || 
+                            agent.description.toLowerCase().includes(query) ||
+                            agent.category.toLowerCase().includes(query)
+                        );
+                    }
+                    return filtered;
+                },
+                
+                init() {
+                    this.$nextTick(() => {
+                        lucide.createIcons();
+                    });
+                },
+                
+                getPageTitle() {
+                    const pages = {
+                        'dashboard': '仪表板',
+                        'environment': '环境管理',
+                        'agents': 'Agent 管理',
+                        'providers': 'AI 提供商',
+                        'mcp': 'MCP 服务器',
+                        'preferences': '写作偏好',
+                        'projects': '项目配置',
+                        'help': '帮助中心'
+                    };
+                    return pages[this.currentPage] || '未知页面';
+                },
+                
+                closeWindow() {
+                    this.showToast('关闭窗口', 'info');
+                },
+                
+                minimizeWindow() {
+                    this.showToast('最小化窗口', 'info');
+                },
+                
+                maximizeWindow() {
+                    this.showToast('最大化窗口', 'info');
+                },
+                
+                refreshDashboard() {
+                    this.showToast('仪表板数据已刷新', 'success');
+                },
+                
+                checkEnvironment() {
+                    this.showToast('正在检测环境...', 'info');
+                    setTimeout(() => {
+                        this.showToast('环境检测完成', 'success');
+                    }, 2000);
+                },
+                
+                repairEnvironment() {
+                    this.showToast('正在修复环境问题...', 'info');
+                    setTimeout(() => {
+                        this.environmentIssues = 0;
+                        this.showToast('环境修复完成', 'success');
+                    }, 3000);
+                },
+                
+                installAgent(agent) {
+                    this.showToast(`正在安装 ${agent.name}...`, 'info');
+                    setTimeout(() => {
+                        agent.isInstalled = true;
+                        this.installedAgents++;
+                        this.showToast(`${agent.name} 安装成功`, 'success');
+                    }, 2000);
+                },
+                
+                uninstallAgent(agent) {
+                    if (confirm(`确定要卸载 ${agent.name} 吗？`)) {
+                        agent.isInstalled = false;
+                        this.installedAgents--;
+                        this.showToast(`${agent.name} 已卸载`, 'success');
+                    }
+                },
+                
+                testProviderConnection(provider) {
+                    provider.status = 'testing';
+                    provider.statusText = '测试中...';
+                    this.showToast(`正在测试 ${provider.name} 连接...`, 'info');
+                    
+                    setTimeout(() => {
+                        const success = Math.random() > 0.3;
+                        if (success) {
+                            provider.status = 'connected';
+                            provider.statusText = '已连接';
+                            provider.lastTested = '刚刚';
+                            this.showToast(`${provider.name} 连接成功`, 'success');
+                        } else {
+                            provider.status = 'error';
+                            provider.statusText = '连接失败';
+                            this.showToast(`${provider.name} 连接失败`, 'error');
+                        }
+                    }, 3000);
+                },
+                
+                deleteProvider(provider) {
+                    if (confirm(`确定要删除 ${provider.name} 吗？`)) {
+                        const index = this.providers.findIndex(p => p.id === provider.id);
+                        if (index > -1) {
+                            this.providers.splice(index, 1);
+                            this.totalProviders--;
+                            if (provider.status === 'connected') {
+                                this.connectedProviders--;
+                            }
+                            this.showToast(`${provider.name} 已删除`, 'success');
+                        }
+                    }
+                },
+                
+                addProvider() {
+                    if (!this.newProvider.name || !this.newProvider.apiKey) {
+                        this.showToast('请填写必要信息', 'error');
+                        return;
+                    }
+                    
+                    const provider = {
+                        id: Date.now(),
+                        name: this.newProvider.name,
+                        modelName: this.newProvider.modelName,
+                        icon: 'brain',
+                        bgColor: 'bg-gray-500',
+                        status: 'testing',
+                        statusText: '测试中...',
+                        maxTokens: 4096,
+                        contextLength: 128000,
+                        lastTested: '从未'
+                    };
+                    
+                    this.providers.push(provider);
+                    this.totalProviders++;
+                    this.showAddProviderDialog = false;
+                    
+                    this.newProvider = { name: '', apiKey: '', modelName: '' };
+                    
+                    setTimeout(() => {
+                        this.testProviderConnection(provider);
+                    }, 1000);
+                },
+                
+                showToast(message, type = 'info') {
+                    this.toast = { show: true, message, type };
+                    setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3000);
+                },
+                
+                // MCP 服务器管理方法
+                testMcpConnection(server) {
+                    this.showToast(`正在测试 ${server.name} 连接...`, 'info');
+                    setTimeout(() => {
+                        const success = Math.random() > 0.2;
+                        if (success) {
+                            server.status = 'connected';
+                            server.statusText = '已连接';
+                            this.showToast(`${server.name} 连接成功`, 'success');
+                        } else {
+                            server.status = 'error';
+                            server.statusText = '连接失败';
+                            this.showToast(`${server.name} 连接失败`, 'error');
+                        }
+                    }, 2000);
+                },
+                
+                toggleMcpServer(server) {
+                    server.enabled = !server.enabled;
+                    const action = server.enabled ? '启用' : '禁用';
+                    this.showToast(`${server.name} 已${action}`, 'success');
+                },
+                
+                deleteMcpServer(server) {
+                    if (confirm(`确定要删除 ${server.name} 吗？`)) {
+                        const index = this.mcpServers.findIndex(s => s.id === server.id);
+                        if (index > -1) {
+                            this.mcpServers.splice(index, 1);
+                            this.showToast(`${server.name} 已删除`, 'success');
+                        }
+                    }
+                },
+                
+                addMcpServer() {
+                    if (!this.newMcpServer.name || !this.newMcpServer.endpoint) {
+                        this.showToast('请填写必要信息', 'error');
+                        return;
+                    }
+                    
+                    const server = {
+                        id: Date.now(),
+                        name: this.newMcpServer.name,
+                        endpoint: this.newMcpServer.endpoint,
+                        description: this.newMcpServer.description,
+                        status: 'connected',
+                        statusText: '已连接',
+                        enabled: true
+                    };
+                    
+                    this.mcpServers.push(server);
+                    this.showAddMcpDialog = false;
+                    this.newMcpServer = { name: '', endpoint: '', description: '' };
+                    this.showToast('MCP 服务器添加成功', 'success');
+                },
+                
+                // 写作偏好方法
+                savePreferences() {
+                    this.showToast('偏好设置已保存', 'success');
+                },
+                
+                // 项目管理方法
+                toggleProjectFavorite(project) {
+                    project.isFavorite = !project.isFavorite;
+                    const action = project.isFavorite ? '添加到' : '从';
+                    this.showToast(`已${action}收藏夹`, 'success');
+                },
+                
+                editProject(project) {
+                    this.showToast(`编辑 ${project.name} 功能开发中`, 'info');
+                },
+                
+                duplicateProject(project) {
+                    const newProject = {
+                        ...project,
+                        id: Date.now(),
+                        name: project.name + ' (副本)',
+                        updatedAt: '刚刚',
+                        documentCount: 0
+                    };
+                    this.projects.push(newProject);
+                    this.showToast(`${project.name} 已复制`, 'success');
+                },
+                
+                deleteProject(project) {
+                    if (confirm(`确定要删除 ${project.name} 吗？`)) {
+                        const index = this.projects.findIndex(p => p.id === project.id);
+                        if (index > -1) {
+                            this.projects.splice(index, 1);
+                            this.showToast(`${project.name} 已删除`, 'success');
+                        }
+                    }
+                },
+                
+                addProject() {
+                    if (!this.newProject.name) {
+                        this.showToast('请输入项目名称', 'error');
+                        return;
+                    }
+                    
+                    const typeColors = {
+                        'academic': 'bg-green-600',
+                        'business': 'bg-blue-600',
+                        'creative': 'bg-pink-600',
+                        'technical': 'bg-purple-600',
+                        'blog': 'bg-orange-600',
+                        'report': 'bg-gray-600'
+                    };
+                    
+                    const typeIcons = {
+                        'academic': 'graduation-cap',
+                        'business': 'briefcase',
+                        'creative': 'pen-tool',
+                        'technical': 'code',
+                        'blog': 'edit-3',
+                        'report': 'file-text'
+                    };
+                    
+                    const project = {
+                        id: Date.now(),
+                        name: this.newProject.name,
+                        type: this.newProject.type,
+                        description: this.newProject.description,
+                        icon: typeIcons[this.newProject.type],
+                        color: typeColors[this.newProject.type],
+                        isFavorite: false,
+                        updatedAt: '刚刚',
+                        documentCount: 0
+                    };
+                    
+                    this.projects.push(project);
+                    this.showAddProjectDialog = false;
+                    this.newProject = { name: '', type: 'academic', description: '' };
+                    this.showToast('项目创建成功', 'success');
+                },
+                
+                // 配置导入导出
+                exportConfiguration() {
+                    const config = {
+                        preferences: this.preferences,
+                        providers: this.providers,
+                        mcpServers: this.mcpServers,
+                        projects: this.projects.map(p => ({ ...p, documentCount: 0 }))
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `writeflow-config-${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    this.showToast('配置已导出', 'success');
+                },
+                
+                // 帮助中心
+                checkForUpdates() {
+                    this.showToast('正在检查更新...', 'info');
+                    setTimeout(() => {
+                        this.showToast('当前已是最新版本', 'success');
+                    }, 2000);
+                },
+                
+                // 项目管理方法
+                switchWorkspace(workspace) {
+                    this.currentWorkspace = workspace;
+                    this.showWorkspaceSelector = false;
+                    this.showToast(`切换到工作区：${workspace.name}`, 'success');
+                },
+                
+                openProject(project) {
+                    this.selectedProject = {
+                        id: project.id,
+                        name: project.name,
+                        icon: project.icon,
+                        color: project.color,
+                        documents: project.documents
+                    };
+                    this.currentPage = 'documents';
+                    this.showToast(`打开项目：${project.name}`, 'success');
+                },
+                
+                showProjectMenu(project) {
+                    this.showToast(`项目菜单：${project.name}`, 'info');
+                },
+                
+                // 文档编辑方法
+                selectDocument(doc) {
+                    if (doc.type === 'folder') return;
+                    
+                    this.selectedDocument = {
+                        id: doc.id,
+                        name: doc.name,
+                        content: doc.content || '# ' + doc.name + '\n\n开始编写内容...',
+                        wordCount: this.calculateWordCount(doc.content || ''),
+                        modified: doc.modified || false
+                    };
+                    
+                    this.updateDocumentOutline();
+                },
+                
+                showDocumentMenu(doc) {
+                    this.showToast(`文档菜单：${doc.name}`, 'info');
+                },
+                
+                updateWordCount() {
+                    if (this.selectedDocument.content) {
+                        this.selectedDocument.wordCount = this.calculateWordCount(this.selectedDocument.content);
+                        this.selectedDocument.modified = true;
+                    }
+                },
+                
+                calculateWordCount(text) {
+                    if (!text) return 0;
+                    // 简单的中文字符计数
+                    return text.replace(/\s/g, '').length;
+                },
+                
+                updateDocumentOutline() {
+                    // 简单的标题提取
+                    const content = this.selectedDocument.content || '';
+                    const headings = content.match(/^#{1,6}\s+.+$/gm) || [];
+                    this.documentOutline = headings.map((heading, index) => {
+                        const level = heading.match(/^#+/)[0].length;
+                        const text = heading.replace(/^#+\s+/, '');
+                        return { id: index + 1, text, level };
+                    });
+                },
+                
+                togglePreview() {
+                    this.showPreview = !this.showPreview;
+                },
+                
+                toggleAIAssistant() {
+                    this.showToast('AI 助手已启动', 'info');
+                },
+                
+                scrollToHeading(heading) {
+                    this.showToast(`跳转到：${heading.text}`, 'info');
+                },
+                
+                renderMarkdown(content) {
+                    if (!content) return '';
+                    // 简单的 Markdown 渲染（实际项目中会使用专业的 Markdown 解析库）
+                    return content
+                        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                        .replace(/\n\n/g, '</p><p>')
+                        .replace(/^(?!<h)(.+)$/gm, '<p>$1</p>')
+                        .replace(/<p><\/p>/g, '');
+                },
+
+                // 计算属性
+                get filteredProjects() {
+                    let projects = this.managedProjects;
+                    
+                    // 搜索过滤
+                    if (this.projectSearch) {
+                        projects = projects.filter(project => 
+                            project.name.toLowerCase().includes(this.projectSearch.toLowerCase()) ||
+                            project.description.toLowerCase().includes(this.projectSearch.toLowerCase())
+                        );
+                    }
+                    
+                    // 状态过滤
+                    if (this.projectFilter !== 'all') {
+                        projects = projects.filter(project => project.status === this.projectFilter);
+                    }
+                    
+                    return projects;
+                },
+                
+                get filteredDocuments() {
+                    let documents = this.documentTree;
+                    
+                    // 搜索过滤
+                    if (this.documentSearch) {
+                        documents = documents.filter(doc => 
+                            doc.name.toLowerCase().includes(this.documentSearch.toLowerCase())
+                        );
+                    }
+                    
+                    return documents;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

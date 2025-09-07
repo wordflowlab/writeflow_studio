@@ -1,0 +1,31 @@
+[package]
+name = "writeflow-studio"
+version = "0.1.0"
+description = "WriteFlow Studio - 完整写作平台"
+authors = ["WriteFlow Team"]
+repository = "https://github.com/writeflow/writeflow-studio"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2.0.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0.0", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "sqlite"] }
+reqwest = { version = "0.11", features = ["json", "stream"] }
+uuid = { version = "1.4", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+dirs = "5.0"
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

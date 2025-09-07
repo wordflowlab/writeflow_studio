@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(npm install:*)",
+      "Bash(cargo check:*)",
+      "Bash(npm run tauri:dev:*)",
+      "Bash(grep:*)",
+      "Bash(lsof:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm run build:*)",
+      "Bash(cargo test)",
+      "Bash(npm run lint)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

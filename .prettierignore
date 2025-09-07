@@ -1,0 +1,25 @@
+# Build output
+dist/
+dist-ssr/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Caches
+.vite/
+.vitest/
+.cache/
+.parcel-cache/
+
+# Tauri / Rust
+target/
+src-tauri/target/
+src-tauri/
+
+# Assets and samples
+data/
+
+# Misc
+*.tsbuildinfo

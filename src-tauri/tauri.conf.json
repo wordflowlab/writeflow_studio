@@ -1,0 +1,49 @@
+{
+  "productName": "WriteFlow Studio",
+  "version": "0.1.0",
+  "identifier": "com.writeflow.studio",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420"
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [],
+    "category": "Productivity",
+    "shortDescription": "WriteFlow Studio - 完整写作平台",
+    "longDescription": "集项目管理、文档编辑、AI 写作助手、环境配置于一体的桌面写作应用程序。"
+  },
+  "app": {
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "label": "main",
+        "title": "WriteFlow Studio",
+        "url": "/",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "fullscreen": false,
+        "focus": true,
+        "transparent": false,
+        "maximized": false,
+        "visible": true,
+        "skipTaskbar": false,
+        "theme": "Light"
+      }
+    ]
+  },
+  "plugins": {}
+}
