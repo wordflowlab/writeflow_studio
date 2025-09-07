@@ -1,4 +1,4 @@
-import { useRef, useState, memo, useCallback, useMemo } from 'react';
+import { useRef, useState, memo, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import Editor from '@monaco-editor/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -16,6 +16,10 @@ import {
   Save
 } from 'lucide-react';
 
+export interface MarkdownEditorHandle {
+  scrollToLine: (line: number) => void;
+}
+
 interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -24,13 +28,13 @@ interface MarkdownEditorProps {
   readOnly?: boolean;
 }
 
-const MarkdownEditor = memo(function MarkdownEditor({
+const MarkdownEditor = memo(forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor({
   value,
   onChange,
   className,
   placeholder = "开始写作...",
   readOnly = false
-}: MarkdownEditorProps) {
+}: MarkdownEditorProps, ref) {
   const [showPreview, setShowPreview] = useState(false);
   const editorRef = useRef<any>(null);
 
@@ -68,6 +72,17 @@ const MarkdownEditor = memo(function MarkdownEditor({
       editor.focus();
     }
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    scrollToLine(line: number) {
+      if (editorRef.current) {
+        const editor = editorRef.current as any;
+        editor.revealLineInCenter(line);
+        editor.setPosition({ lineNumber: line, column: 1 });
+        editor.focus();
+      }
+    },
+  }));
 
   return (
     <div className={cn('flex flex-col h-full bg-white', className)}>
@@ -124,6 +139,13 @@ const MarkdownEditor = memo(function MarkdownEditor({
         
         <div className="flex items-center space-x-4">
           <span className="text-sm text-gray-500">{wordCount} 字</span>
+          <button
+            className="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+            title="AI 助手（占位）"
+            onClick={() => alert('AI 助手功能开发中')}
+          >
+            AI 助手
+          </button>
           <button
             onClick={() => setShowPreview(!showPreview)}
             className={cn(
@@ -200,6 +222,6 @@ const MarkdownEditor = memo(function MarkdownEditor({
       </div>
     </div>
   );
-});
+}));
 
 export default MarkdownEditor;

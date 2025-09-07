@@ -32,13 +32,14 @@ interface ProjectCreateDialogProps {
   onProjectCreated?: (project: any) => void;
 }
 
+// 与后端 CreateProjectData 对齐（template_id 可选）
 interface CreateProjectData {
   name: string;
   description: string;
-  project_type: string;
-  workspace_id: string;
   icon: string;
   color: string;
+  workspace_id: string;
+  template_id?: string | null;
 }
 
 export function ProjectCreateDialog({
@@ -71,6 +72,11 @@ export function ProjectCreateDialog({
       return;
     }
 
+    if (!workspaceId) {
+      toast({ title: '缺少工作区', description: '请先选择一个工作区再创建项目', variant: 'destructive' });
+      return;
+    }
+
     setIsCreating(true);
     
     try {
@@ -79,10 +85,10 @@ export function ProjectCreateDialog({
       const projectData: CreateProjectData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        project_type: formData.type,
-        workspace_id: workspaceId || 'default-workspace',
         icon: selectedType.icon,
-        color: selectedType.color
+        color: selectedType.color,
+        workspace_id: workspaceId,
+        template_id: null,
       };
 
       const newProject = await invoke('create_project', { project_data: projectData });
@@ -107,11 +113,11 @@ export function ProjectCreateDialog({
         onProjectCreated(newProject);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('创建项目失败:', error);
       toast({
         title: "错误",
-        description: "创建项目失败，请重试",
+        description: `创建项目失败：${error?.message || '请重试'}`,
         variant: "destructive"
       });
     } finally {

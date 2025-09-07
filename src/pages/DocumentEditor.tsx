@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { invoke } from "@/lib/tauri";
 import { useAppStore } from "@/store/app";
-import MarkdownEditor from "@/components/editor/MarkdownEditor";
+import MarkdownEditor, { MarkdownEditorHandle } from "@/components/editor/MarkdownEditor";
 import DocumentTree from "@/components/document/DocumentTree";
 import ImportExportDialog from "@/components/document/ImportExportDialog";
 
@@ -43,6 +43,18 @@ export default function DocumentEditor() {
   const [loading, setLoading] = useState(true);
   const [showImportExportDialog, setShowImportExportDialog] = useState(false);
   const [importExportMode, setImportExportMode] = useState<'import' | 'export'>('export');
+  const [docFilter, setDocFilter] = useState("");
+  const editorHandle = useRef<MarkdownEditorHandle>(null);
+
+  const outline = useMemo(() => {
+    const lines = content.split(/\n/);
+    const items: { level: number; text: string; line: number }[] = [];
+    lines.forEach((l, i) => {
+      const m = l.match(/^(#{1,6})\s+(.+)$/);
+      if (m) items.push({ level: m[1].length, text: m[2], line: i + 1 });
+    });
+    return items;
+  }, [content]);
 
   // 自动保存函数
   const debouncedSave = useCallback(
@@ -252,8 +264,16 @@ export default function DocumentEditor() {
           <div className="h-12 border-b border-gray-200 bg-white flex items-center px-4">
             <h2 className="font-medium text-sm truncate">{currentProject.name}</h2>
           </div>
+          <div className="p-2 border-b">
+            <input
+              className="w-full border rounded px-2 py-1 text-sm"
+              placeholder="搜索文档..."
+              value={docFilter}
+              onChange={(e) => setDocFilter(e.target.value)}
+            />
+          </div>
           <DocumentTree
-            documents={documents}
+            documents={documents.filter(d => d.title.toLowerCase().includes(docFilter.toLowerCase()))}
             selectedDocumentId={selectedDocument?.id}
             onDocumentSelect={handleDocumentSelect}
             onDocumentCreate={handleDocumentCreate}
@@ -323,6 +343,7 @@ export default function DocumentEditor() {
             {/* Markdown 编辑器 */}
             <div className="flex-1">
               <MarkdownEditor
+                ref={editorHandle}
                 value={content}
                 onChange={handleContentChange}
                 placeholder="开始写作..."
@@ -347,6 +368,32 @@ export default function DocumentEditor() {
           </div>
         )}
         </div>
+        {/* 右侧大纲 */}
+        <div className="w-64 border-l border-gray-200 bg-gray-50 flex-shrink-0">
+          <div className="h-12 border-b bg-white flex items-center px-4 text-sm font-medium">文档大纲</div>
+          <div className="p-2 overflow-auto h-[calc(100%-3rem)]">
+            {outline.length === 0 ? (
+              <div className="text-xs text-gray-500">暂无大纲</div>
+            ) : (
+              outline.map((h) => (
+                <button
+                  key={`${h.line}-${h.text}`}
+                  className="block w-full text-left text-sm text-gray-700 hover:bg-gray-100 rounded px-2 py-1"
+                  style={{ paddingLeft: `${(h.level - 1) * 12 + 8}px` }}
+                  onClick={() => editorHandle.current?.scrollToLine(h.line)}
+                >
+                  {h.text}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 底部状态栏 */}
+      <div className="h-6 border-t text-[11px] text-gray-600 px-3 flex items-center justify-between bg-gray-50">
+        <span>WriteFlow Studio v1.0.0</span>
+        <span>系统正常</span>
       </div>
 
       {/* 导入导出对话框 */}
