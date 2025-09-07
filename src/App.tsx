@@ -14,11 +14,12 @@ import WritingPreferences from "@/pages/WritingPreferences";
 import EnvironmentPage from "@/pages/Environment";
 import Agents from "@/pages/Agents";
 import { ProjectsPage } from "@/pages/ProjectsPage";
+import DocumentsPage from "@/pages/DocumentsPage";
 import { WorkspacePage } from "@/pages/WorkspacePage";
 import { useAppStore, Config, Workspace, SystemInfo } from "@/store/app";
 
 function App() {
-  const { initializeApp, setLoading } = useAppStore();
+  const { initializeApp, setLoading, loadProjectData } = useAppStore();
 
   useEffect(() => {
     const init = async () => {
@@ -31,6 +32,8 @@ function App() {
         const systemInfo = await invoke("get_system_info") as SystemInfo;
         
         initializeApp({ config, workspaces, systemInfo });
+        // 初始加载当前工作区的项目数据，避免进入页面空白
+        await loadProjectData();
       } catch (error) {
         console.error("Failed to initialize app:", error);
       } finally {
@@ -49,6 +52,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="projects" element={<ProjectsPage />} />
+            <Route path="documents" element={<DocumentsPage />} />
             <Route path="workspace" element={<WorkspacePage />} />
             <Route path="project/:projectId" element={<ProjectView />} />
             <Route path="settings" element={<Settings />} />

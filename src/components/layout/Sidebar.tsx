@@ -26,7 +26,7 @@ const coreNavigation = [
     name: '文档编辑',
     href: '/documents',
     icon: FileText,
-    disabled: true,
+    disabled: false,
   },
   {
     name: '环境管理',
