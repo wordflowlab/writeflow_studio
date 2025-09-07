@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ProjectList } from '@/components/project/ProjectList';
 import { invoke } from '@/lib/tauri';
 import { ProjectCreateDialog } from '@/components/project/ProjectCreateDialog';
+import WorkspaceCreateDialog from '@/components/workspace/WorkspaceCreateDialog';
+import WorkspaceEditDialog from '@/components/workspace/WorkspaceEditDialog';
 
 export function ProjectsPage() {
   const [activeTab, setActiveTab] = useState('all');
@@ -14,7 +16,10 @@ export function ProjectsPage() {
   const [showWorkspaceSelector, setShowWorkspaceSelector] = useState(false);
   const [stats, setStats] = useState<{ total: number; active: number; completed: number; this_week: number }>({ total: 0, active: 0, completed: 0, this_week: 0 });
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
+  const [editWorkspace, setEditWorkspace] = useState<any | null>(null);
   const [listKey, setListKey] = useState(0);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -34,7 +39,7 @@ export function ProjectsPage() {
             <p className="text-gray-600 mt-1">管理写作项目和工作区</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => alert('工作区创建向导开发中')}>新建工作区</Button>
+            <Button variant="outline" onClick={() => setShowCreateWorkspace(true)}>新建工作区</Button>
             <Button onClick={() => setShowCreateProject(true)}>新建项目</Button>
           </div>
         </div>
@@ -60,13 +65,16 @@ export function ProjectsPage() {
               <CardContent className="pt-0 pb-4">
                 <div className="grid gap-2">
                   {workspaces.map(ws => (
-                    <button key={ws.id} onClick={() => { setCurrentWorkspace(ws.id); setShowWorkspaceSelector(false); setListKey(k=>k+1); }} className={`flex items-center justify-between p-3 rounded-md border ${currentWorkspace?.id===ws.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
-                      <div>
+                    <div key={ws.id} className={`flex items-center justify-between p-3 rounded-md border ${currentWorkspace?.id===ws.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                      <button onClick={() => { setCurrentWorkspace(ws.id); setShowWorkspaceSelector(false); setListKey(k=>k+1); }} className="text-left flex-1">
                         <div className="font-medium text-sm">{ws.name}</div>
                         <div className="text-xs text-gray-500">{ws.projects_count} 个项目</div>
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setEditWorkspace(ws)}>编辑</Button>
+                        <Button variant="outline" size="sm" className="text-red-600" onClick={async () => { if (confirm('确定删除该工作区？此操作不可恢复')) { await invoke('delete_workspace', { workspace_id: ws.id }); setListKey(k=>k+1); } }}>删除</Button>
                       </div>
-                      {currentWorkspace?.id===ws.id && <span className="text-blue-600 text-sm">✓</span>}
-                    </button>
+                    </div>
                   ))}
                 </div>
               </CardContent>
@@ -86,7 +94,7 @@ export function ProjectsPage() {
 
         {/* 搜索与操作 */}
         <div className="flex items-center justify-between mb-4">
-          <Input placeholder="搜索项目..." className="max-w-sm" />
+          <Input placeholder="搜索项目..." className="max-w-sm" value={query} onChange={(e) => setQuery(e.target.value)} />
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setShowCreateProject(true)}>新建项目</Button>
           </div>
@@ -102,23 +110,19 @@ export function ProjectsPage() {
           
           <TabsContent value="all" className="mt-6">
             {/* 全部项目显示所有，但创建将落在当前工作区，由 ProjectList 内部处理 */}
-            <ProjectList key={`list-${listKey}-all`} workspaceId="all" />
+            <ProjectList key={`list-${listKey}-all`} workspaceId="all" query={query} status="all" />
           </TabsContent>
           
           <TabsContent value="active" className="mt-6">
-            <ProjectList key={`list-${listKey}-${currentWorkspace?.id || 'none'}`} workspaceId={currentWorkspace?.id} />
+            <ProjectList key={`list-${listKey}-${currentWorkspace?.id || 'none'}`} workspaceId={currentWorkspace?.id} query={query} status="Active" />
           </TabsContent>
           
           <TabsContent value="completed" className="mt-6">
-            <div className="text-center py-12">
-              <p className="text-gray-500">筛选功能开发中...</p>
-            </div>
+            <ProjectList key={`list-${listKey}-completed`} workspaceId={currentWorkspace?.id} query={query} status="Completed" />
           </TabsContent>
           
           <TabsContent value="archived" className="mt-6">
-            <div className="text-center py-12">
-              <p className="text-gray-500">筛选功能开发中...</p>
-            </div>
+            <ProjectList key={`list-${listKey}-archived`} workspaceId={currentWorkspace?.id} query={query} status="Archived" />
           </TabsContent>
         </Tabs>
       </div>
@@ -129,6 +133,17 @@ export function ProjectsPage() {
         onOpenChange={setShowCreateProject}
         workspaceId={currentWorkspace?.id}
         onProjectCreated={() => setListKey(k => k + 1)}
+      />
+      <WorkspaceCreateDialog
+        open={showCreateWorkspace}
+        onOpenChange={setShowCreateWorkspace}
+        onCreated={(ws) => { setCurrentWorkspace(ws.id); setListKey(k=>k+1); }}
+      />
+      <WorkspaceEditDialog
+        open={!!editWorkspace}
+        onOpenChange={(v) => !v && setEditWorkspace(null)}
+        workspace={editWorkspace}
+        onUpdated={() => setListKey(k=>k+1)}
       />
     </div>
   );

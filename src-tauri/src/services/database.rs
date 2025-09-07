@@ -1,5 +1,5 @@
 use crate::models::{
-    project::{Project, CreateProjectData, ProjectStats},
+    project::{Project, CreateProjectData, ProjectStats, ProjectListResult, ProjectStatus},
     workspace::{Workspace, CreateWorkspaceData},
     document::{Document, CreateDocumentData},
     config::AppConfig,
@@ -253,6 +253,91 @@ impl Database {
         }
 
         Ok(projects)
+    }
+
+    pub async fn search_projects(
+        &self,
+        workspace_id: Option<&str>,
+        query: Option<&str>,
+        status: Option<&str>,
+        sort: Option<&str>,
+        order: Option<&str>,
+        page: u32,
+        page_size: u32,
+    ) -> Result<ProjectListResult> {
+        let mut where_clauses: Vec<String> = Vec::new();
+        let mut args: Vec<String> = Vec::new();
+
+        if let Some(wid) = workspace_id {
+            where_clauses.push("workspace_id = ?".to_string());
+            args.push(wid.to_string());
+        }
+
+        if let Some(q) = query {
+            where_clauses.push("(name LIKE ? OR description LIKE ?)".to_string());
+            let like = format!("%{}%", q);
+            args.push(like.clone());
+            args.push(like);
+        }
+
+        if let Some(st) = status {
+            let status_json = match st {
+                "Active" => serde_json::to_string(&ProjectStatus::Active)?,
+                "Completed" => serde_json::to_string(&ProjectStatus::Completed)?,
+                "Archived" => serde_json::to_string(&ProjectStatus::Archived)?,
+                _ => "".to_string(),
+            };
+            if !status_json.is_empty() {
+                where_clauses.push("status = ?".to_string());
+                args.push(status_json);
+            }
+        }
+
+        let where_sql = if where_clauses.is_empty() { String::new() } else { format!(" WHERE {}", where_clauses.join(" AND ")) };
+
+        let (sort_col, sort_dir) = match (sort.unwrap_or("updated_at"), order.unwrap_or("DESC")) {
+            ("name", dir) => ("name", if dir.eq_ignore_ascii_case("ASC") {"ASC"} else {"DESC"}),
+            ("created_at", dir) => ("created_at", if dir.eq_ignore_ascii_case("ASC") {"ASC"} else {"DESC"}),
+            _ => ("updated_at", "DESC"),
+        };
+
+        let limit = page_size.max(1) as i64;
+        let offset = ((page.max(1) - 1) * page_size) as i64;
+
+        // Build count query
+        let count_sql = format!("SELECT COUNT(*) as count FROM projects{}", where_sql);
+        let mut count_q = sqlx::query(&count_sql);
+        for a in &args { count_q = count_q.bind(a); }
+        let count_row = count_q.fetch_one(&self.pool).await?;
+        let total: u32 = count_row.get::<i64, _>("count") as u32;
+
+        // Build list query
+        let list_sql = format!("SELECT * FROM projects{} ORDER BY {} {} LIMIT ? OFFSET ?", where_sql, sort_col, sort_dir);
+        let mut list_q = sqlx::query(&list_sql);
+        for a in &args { list_q = list_q.bind(a); }
+        list_q = list_q.bind(limit).bind(offset);
+        let rows = list_q.fetch_all(&self.pool).await?;
+
+        let mut items = Vec::new();
+        for row in rows {
+            let project = Project {
+                id: row.get("id"),
+                name: row.get("name"),
+                description: row.get("description"),
+                icon: row.get("icon"),
+                color: row.get("color"),
+                status: serde_json::from_str(&row.get::<String, _>("status"))?,
+                progress: row.get::<i64, _>("progress") as u32,
+                documents_count: row.get::<i64, _>("documents_count") as u32,
+                words_count: row.get::<i64, _>("words_count") as u32,
+                workspace_id: row.get("workspace_id"),
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<String, _>("created_at"))?.with_timezone(&chrono::Utc),
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<String, _>("updated_at"))?.with_timezone(&chrono::Utc),
+            };
+            items.push(project);
+        }
+
+        Ok(ProjectListResult { items, total })
     }
 
     // Document operations
@@ -656,6 +741,19 @@ impl Database {
         } else {
             Ok(None)
         }
+    }
+
+    pub async fn update_workspace(&self, workspace_id: &str, name: &str, description: &str) -> Result<Workspace> {
+        sqlx::query("UPDATE workspaces SET name = ?2, description = ?3, updated_at = ?4 WHERE id = ?1")
+            .bind(workspace_id)
+            .bind(name)
+            .bind(description)
+            .bind(chrono::Utc::now().to_rfc3339())
+            .execute(&self.pool)
+            .await?;
+
+        // return updated row
+        Ok(self.get_workspace_by_id(workspace_id).await?.expect("workspace should exist"))
     }
 
     pub async fn delete_workspace(&self, workspace_id: &str) -> Result<()> {

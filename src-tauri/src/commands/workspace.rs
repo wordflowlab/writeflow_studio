@@ -40,3 +40,16 @@ pub async fn delete_workspace(
         .await
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn update_workspace(
+    database: State<'_, Database>,
+    workspace_id: String,
+    name: String,
+    description: String,
+) -> Result<Workspace, String> {
+    database
+        .update_workspace(&workspace_id, &name, &description)
+        .await
+        .map_err(|e| e.to_string())
+}

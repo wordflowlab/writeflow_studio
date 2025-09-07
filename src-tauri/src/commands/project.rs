@@ -1,4 +1,4 @@
-use crate::models::project::{Project, CreateProjectData, ProjectStats};
+use crate::models::project::{Project, CreateProjectData, ProjectStats, ProjectListResult};
 use crate::services::database::Database;
 use tauri::State;
 
@@ -64,6 +64,31 @@ pub async fn get_projects_by_workspace(
 ) -> Result<Vec<Project>, String> {
     database
         .get_projects_by_workspace(&workspace_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn search_projects(
+    database: State<'_, Database>,
+    workspace_id: Option<String>,
+    query: Option<String>,
+    status: Option<String>,
+    sort: Option<String>,
+    order: Option<String>,
+    page: Option<u32>,
+    page_size: Option<u32>,
+) -> Result<ProjectListResult, String> {
+    database
+        .search_projects(
+            workspace_id.as_deref(),
+            query.as_deref(),
+            status.as_deref(),
+            sort.as_deref(),
+            order.as_deref(),
+            page.unwrap_or(1),
+            page_size.unwrap_or(9),
+        )
         .await
         .map_err(|e| e.to_string())
 }

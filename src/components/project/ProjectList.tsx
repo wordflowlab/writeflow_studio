@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAppStore } from '@/store/app';
 import { invoke } from '@/lib/tauri';
 import { ProjectCreateDialog } from './ProjectCreateDialog';
+import ProjectEditDialog from './ProjectEditDialog';
 
 interface Project {
   id: string;
@@ -25,12 +26,19 @@ interface Project {
 
 interface ProjectListProps {
   workspaceId?: string | null;
+  status?: 'all' | 'Active' | 'Completed' | 'Archived';
+  query?: string;
 }
 
-export function ProjectList({ workspaceId }: ProjectListProps) {
+export function ProjectList({ workspaceId, status = 'all', query = '' }: ProjectListProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(9);
+  const [total, setTotal] = useState(0);
+  const [sort, setSort] = useState<'recent' | 'name' | 'created'>('recent');
   const { toast } = useToast();
   const { currentWorkspace } = useAppStore();
 
@@ -38,20 +46,20 @@ export function ProjectList({ workspaceId }: ProjectListProps) {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      let projectList: Project[];
-      
-      if (workspaceId === 'all') {
-        projectList = await invoke('get_projects');
-      } else {
-        const wid = workspaceId || currentWorkspace?.id;
-        if (!wid) {
-          projectList = await invoke('get_projects');
-        } else {
-          projectList = await invoke('get_projects_by_workspace', { workspace_id: wid });
-        }
-      }
-      
-      setProjects(projectList || []);
+      const wid = workspaceId === 'all' ? null : (workspaceId || currentWorkspace?.id || null);
+      const order = (sort === 'name') ? 'ASC' : 'DESC';
+      const sortCol = sort === 'name' ? 'name' : (sort === 'created' ? 'created_at' : 'updated_at');
+      const res = await invoke('search_projects', {
+        workspace_id: wid,
+        query: query || null,
+        status: status === 'all' ? null : status,
+        sort: sortCol,
+        order,
+        page,
+        page_size: pageSize,
+      }) as { items: Project[]; total: number };
+      setProjects(res.items || []);
+      setTotal(res.total || 0);
     } catch (error) {
       console.error('加载项目失败:', error);
       toast({
@@ -67,20 +75,32 @@ export function ProjectList({ workspaceId }: ProjectListProps) {
 
   useEffect(() => {
     loadProjects();
-  }, [workspaceId]);
+  }, [workspaceId, status, query, page, pageSize, sort]);
 
   const handleProjectCreated = (newProject: Project) => {
     setProjects(prev => [newProject, ...prev]);
   };
 
   const handleEditProject = (project: Project) => {
-    // TODO: 实现项目编辑功能
-    console.log('编辑项目:', project.id);
+    setEditProject(project);
   };
 
-  const handleDuplicateProject = (project: Project) => {
-    // TODO: 实现项目复制功能
-    console.log('复制项目:', project.id);
+  const handleDuplicateProject = async (project: Project) => {
+    try {
+      const duplicated = {
+        name: `${project.name} (副本)`,
+        description: project.description,
+        icon: project.icon,
+        color: project.color,
+        workspace_id: project.workspace_id,
+        template_id: null,
+      };
+      const newProject = await invoke('create_project', { project_data: duplicated });
+      setProjects(prev => [newProject as Project, ...prev]);
+      toast({ title: '已复制', description: '项目副本已创建' });
+    } catch (e: any) {
+      toast({ title: '复制失败', description: String(e?.message || e), variant: 'destructive' });
+    }
   };
 
   const handleDeleteProject = async (project: Project) => {
@@ -169,6 +189,24 @@ export function ProjectList({ workspaceId }: ProjectListProps) {
           <Plus className="w-4 h-4" />
           <span>新建项目</span>
         </Button>
+      </div>
+
+      {/* 排序与分页 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <span>排序:</span>
+          <select className="border rounded px-2 py-1" value={sort} onChange={(e) => { setPage(1); setSort(e.target.value as any); }}>
+            <option value="recent">最近更新</option>
+            <option value="created">创建时间</option>
+            <option value="name">名称</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <span>共 {total} 个</span>
+          <button className="px-2 py-1 border rounded disabled:opacity-50" disabled={page<=1} onClick={() => setPage(p => Math.max(1, p-1))}>上一页</button>
+          <span>{page}</span>
+          <button className="px-2 py-1 border rounded disabled:opacity-50" disabled={(page*pageSize) >= total} onClick={() => setPage(p => p+1)}>下一页</button>
+        </div>
       </div>
 
       {/* 项目列表 */}
@@ -277,6 +315,12 @@ export function ProjectList({ workspaceId }: ProjectListProps) {
         onOpenChange={setShowCreateDialog}
         workspaceId={(workspaceId && workspaceId !== 'all') ? workspaceId : (currentWorkspace?.id || undefined)}
         onProjectCreated={handleProjectCreated}
+      />
+      <ProjectEditDialog
+        open={!!editProject}
+        onOpenChange={(v) => !v && setEditProject(null)}
+        project={editProject as any}
+        onUpdated={(p) => setProjects(prev => prev.map(x => x.id === p.id ? p : x))}
       />
     </div>
   );

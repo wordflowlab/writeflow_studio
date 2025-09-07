@@ -44,6 +44,12 @@ pub struct ProjectStats {
     pub this_week: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectListResult {
+    pub items: Vec<Project>,
+    pub total: u32,
+}
+
 impl Project {
     pub fn new(data: CreateProjectData) -> Self {
         let now = Utc::now();

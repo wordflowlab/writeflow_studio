@@ -29,12 +29,14 @@ async fn main() {
             project::delete_project,
             project::get_project_stats,
             project::get_projects_by_workspace,
+            project::search_projects,
             
             // Workspace management
             workspace::create_workspace,
             workspace::get_workspaces,
             workspace::switch_workspace,
             workspace::delete_workspace,
+            workspace::update_workspace,
             
             // Document management
             document::create_document,
