@@ -1,4 +1,4 @@
-use crate::models::environment::{EnvironmentStatus, InstallationResult};
+use crate::models::environment::{EnvironmentStatus, InstallationResult, EnvSummary};
 use crate::services::environment::EnvironmentService;
 use tauri::State;
 
@@ -6,6 +6,14 @@ use tauri::State;
 pub async fn check_environment() -> Result<EnvironmentStatus, String> {
     let service = EnvironmentService::new();
     service.check_environment()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_environment_summary() -> Result<EnvSummary, String> {
+    let service = EnvironmentService::new();
+    service.get_summary()
         .await
         .map_err(|e| e.to_string())
 }

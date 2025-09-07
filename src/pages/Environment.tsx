@@ -20,7 +20,7 @@ export default function EnvironmentPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const result = await invoke('check_environment');
+      const result = await invoke('get_environment_summary');
       setStatus(result as EnvStatus);
     } catch (e) {
       console.error(e);
@@ -142,4 +142,3 @@ export default function EnvironmentPage() {
     </div>
   );
 }
-

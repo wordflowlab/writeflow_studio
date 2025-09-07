@@ -86,6 +86,22 @@ pub struct EnvironmentCheckResult {
     pub can_proceed: bool,
 }
 
+// 简化给前端的环境摘要
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnvComponent {
+    pub installed: bool,
+    pub version: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnvSummary {
+    pub health: u8,
+    pub issues: u32,
+    pub node: EnvComponent,
+    pub npm: EnvComponent,
+    pub writeflow: EnvComponent,
+}
+
 impl Default for ToolInfo {
     fn default() -> Self {
         Self {

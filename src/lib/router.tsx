@@ -9,6 +9,7 @@ import AIProviders from '@/pages/AIProviders';
 import MCPServers from '@/pages/MCPServers';
 import WritingPreferences from '@/pages/WritingPreferences';
 import EnvironmentPage from '@/pages/Environment';
+import Agents from '@/pages/Agents';
 
 export function AppRouter() {
   return (
@@ -22,6 +23,7 @@ export function AppRouter() {
       <Route path="/mcp-servers" element={<MCPServers />} />
       <Route path="/writing-preferences" element={<WritingPreferences />} />
       <Route path="/environment" element={<EnvironmentPage />} />
+      <Route path="/agents" element={<Agents />} />
       <Route path="/workspace" element={<WorkspacePage />} />
       <Route path="/settings" element={<SettingsPage />} />
       

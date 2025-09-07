@@ -1,5 +1,14 @@
-// Mock Tauri API for development
+// 轻量封装：在 Tauri 环境下透传到真实 invoke，
+// 在浏览器开发环境下使用内置 mock 数据。
 export const invoke = async (command: string, args?: Record<string, any>): Promise<any> => {
+  const isTauri = typeof window !== 'undefined' &&
+    (('__TAURI__' in (window as any)) || ('__TAURI_INTERNALS__' in (window as any)));
+
+  if (isTauri) {
+    const core = await import('@tauri-apps/api/core');
+    return core.invoke(command, args as any);
+  }
+
   console.log(`Mock invoke: ${command}`, args);
   
   switch (command) {

@@ -38,7 +38,7 @@ const coreNavigation = [
     name: 'Agent 管理',
     href: '/agents',
     icon: Bot,
-    disabled: true,
+    disabled: false,
   },
   {
     name: 'AI 提供商',
