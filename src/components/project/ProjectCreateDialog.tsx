@@ -44,7 +44,7 @@ interface CreateProjectData {
 export function ProjectCreateDialog({
   open,
   onOpenChange,
-  workspaceId = 'workspace-1',
+  workspaceId,
   onProjectCreated
 }: ProjectCreateDialogProps) {
   const [formData, setFormData] = useState({
@@ -80,7 +80,7 @@ export function ProjectCreateDialog({
         name: formData.name.trim(),
         description: formData.description.trim(),
         project_type: formData.type,
-        workspace_id: workspaceId,
+        workspace_id: workspaceId || 'default-workspace',
         icon: selectedType.icon,
         color: selectedType.color
       };

@@ -37,7 +37,7 @@ export default function ProjectView() {
     try {
       setLoading(true);
       const projectDocuments = await invoke("get_documents_by_project", {
-        projectId: id,
+        project_id: id,
       });
       setDocuments(projectDocuments);
     } catch (error) {

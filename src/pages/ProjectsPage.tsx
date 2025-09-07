@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useAppStore } from '@/store/app';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectList } from '@/components/project/ProjectList';
 
 export function ProjectsPage() {
   const [activeTab, setActiveTab] = useState('all');
+  const { currentWorkspace } = useAppStore();
 
   return (
     <div className="flex-1 flex flex-col h-full">
@@ -26,11 +28,12 @@ export function ProjectsPage() {
           </TabsList>
           
           <TabsContent value="all" className="mt-6">
+            {/* 全部项目显示所有，但创建将落在当前工作区，由 ProjectList 内部处理 */}
             <ProjectList workspaceId="all" />
           </TabsContent>
           
           <TabsContent value="active" className="mt-6">
-            <ProjectList workspaceId="workspace-1" />
+            <ProjectList workspaceId={currentWorkspace?.id} />
           </TabsContent>
           
           <TabsContent value="completed" className="mt-6">

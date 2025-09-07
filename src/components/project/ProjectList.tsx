@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { useAppStore } from '@/store/app';
 import { invoke } from '@/lib/tauri';
 import { ProjectCreateDialog } from './ProjectCreateDialog';
 
@@ -23,14 +24,15 @@ interface Project {
 }
 
 interface ProjectListProps {
-  workspaceId?: string;
+  workspaceId?: string | null;
 }
 
-export function ProjectList({ workspaceId = 'workspace-1' }: ProjectListProps) {
+export function ProjectList({ workspaceId }: ProjectListProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { toast } = useToast();
+  const { currentWorkspace } = useAppStore();
 
   // 加载项目列表
   const loadProjects = async () => {
@@ -41,7 +43,12 @@ export function ProjectList({ workspaceId = 'workspace-1' }: ProjectListProps) {
       if (workspaceId === 'all') {
         projectList = await invoke('get_projects');
       } else {
-        projectList = await invoke('get_projects_by_workspace', { workspaceId });
+        const wid = workspaceId || currentWorkspace?.id;
+        if (!wid) {
+          projectList = await invoke('get_projects');
+        } else {
+          projectList = await invoke('get_projects_by_workspace', { workspace_id: wid });
+        }
       }
       
       setProjects(projectList || []);
@@ -268,7 +275,7 @@ export function ProjectList({ workspaceId = 'workspace-1' }: ProjectListProps) {
       <ProjectCreateDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        workspaceId={workspaceId}
+        workspaceId={(workspaceId && workspaceId !== 'all') ? workspaceId : (currentWorkspace?.id || undefined)}
         onProjectCreated={handleProjectCreated}
       />
     </div>

@@ -29,7 +29,12 @@ function App() {
         
         // Load initial configuration
         const config = await invoke("get_config") as Config;
-        const workspaces = await invoke("get_workspaces") as Workspace[];
+        let workspaces = await invoke("get_workspaces") as Workspace[];
+        if (!workspaces || workspaces.length === 0) {
+          // 首次运行自动创建默认工作区
+          await invoke('create_workspace', { workspace_data: { name: '默认工作区', description: '默认工作区' } });
+          workspaces = await invoke("get_workspaces") as Workspace[];
+        }
         const systemInfo = await invoke("get_system_info") as SystemInfo;
         
         initializeApp({ config, workspaces, systemInfo });
