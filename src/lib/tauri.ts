@@ -255,7 +255,7 @@ export const invoke = async (command: string, args?: Record<string, any>): Promi
           status: "Draft",
           word_count: 45,
           char_count: 120,
-          project_id: args?.projectId || "project-1",
+          project_id: args?.project_id || args?.projectId || "project-1",
           folder_path: null,
           tags: ["介绍", "文档"],
           created_at: new Date().toISOString(),
@@ -270,7 +270,7 @@ export const invoke = async (command: string, args?: Record<string, any>): Promi
           status: "InProgress",
           word_count: 32,
           char_count: 85,
-          project_id: args?.projectId || "project-1",
+          project_id: args?.project_id || args?.projectId || "project-1",
           folder_path: null,
           tags: ["手册", "安装"],
           created_at: new Date().toISOString(),
@@ -278,6 +278,26 @@ export const invoke = async (command: string, args?: Record<string, any>): Promi
           last_accessed: new Date().toISOString(),
         },
       ];
+    
+    case "create_document": {
+      const d = args?.document_data || args;
+      const newDoc = {
+        id: `doc-${Date.now()}`,
+        title: d?.title || "新文档",
+        content: d?.content ?? "",
+        project_id: d?.project_id || "project-1",
+        folder_path: d?.folder_path || null,
+        content_type: "Markdown",
+        status: "Draft",
+        word_count: (d?.content || "").length,
+        char_count: (d?.content || "").length,
+        tags: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_accessed: new Date().toISOString(),
+      };
+      return newDoc;
+    }
       
     case "save_config":
     case "update_document_content":

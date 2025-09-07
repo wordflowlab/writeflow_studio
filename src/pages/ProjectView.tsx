@@ -48,8 +48,22 @@ export default function ProjectView() {
   };
 
   const handleCreateDocument = async () => {
-    // TODO: Implement create document dialog
-    console.log("Create document in project:", currentProject?.id);
+    if (!currentProject) return;
+    try {
+      await invoke("create_document", {
+        document_data: {
+          project_id: currentProject.id,
+          title: "新文档",
+          content: "",
+          folder_path: null,
+        },
+      });
+      // 打开编辑器
+      window.location.assign(`/editor/${currentProject.id}`);
+    } catch (e) {
+      console.error(e);
+      window.location.assign(`/editor/${currentProject.id}`);
+    }
   };
 
   if (!currentProject) {
@@ -146,7 +160,7 @@ export default function ProjectView() {
               {documents.map((document) => (
                 <Link
                   key={document.id}
-                  to={`/document/${document.id}`}
+                  to={`/editor/${currentProject.id}`}
                   className="flex items-center gap-3 p-4 rounded-md border hover:bg-accent/50 transition-colors"
                 >
                   <DocumentTextIcon className="h-5 w-5 text-muted-foreground" />

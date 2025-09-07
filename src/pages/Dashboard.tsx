@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FolderIcon,
   DocumentTextIcon,
@@ -10,6 +10,8 @@ import { useAppStore } from "@/store/app";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
+import { ProjectCreateDialog } from "@/components/project/ProjectCreateDialog";
+import { invoke } from "@/lib/tauri";
 
 interface Stats {
   totalProjects: number;
@@ -25,7 +27,9 @@ export default function Dashboard() {
     recentProjects,
     recentDocuments,
     setCurrentProject,
+    setProjects,
   } = useAppStore();
+  const navigate = useNavigate();
   
   const [stats, setStats] = useState<Stats>({
     totalProjects: 0,
@@ -33,6 +37,7 @@ export default function Dashboard() {
     totalWords: 0,
     recentActivity: 0,
   });
+  const [showCreateProject, setShowCreateProject] = useState(false);
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -57,13 +62,27 @@ export default function Dashboard() {
   };
 
   const handleCreateProject = async () => {
-    // TODO: Implement create project dialog
-    console.log("Create project");
+    setShowCreateProject(true);
   };
 
   const handleCreateDocument = async () => {
-    // TODO: Implement create document dialog
-    console.log("Create document");
+    // 在当前（或第一个）项目中创建文档并打开编辑器
+    const targetProject = projects[0];
+    if (!targetProject) return;
+    try {
+      await invoke("create_document", {
+        document_data: {
+          project_id: targetProject.id,
+          title: "新文档",
+          content: "",
+          folder_path: null,
+        },
+      });
+      navigate(`/editor/${targetProject.id}`);
+    } catch (e) {
+      console.error("Create document failed", e);
+      navigate(`/editor/${targetProject.id}`); // 仍然导航到编辑器
+    }
   };
 
   if (!currentWorkspace) {
@@ -197,7 +216,7 @@ export default function Dashboard() {
               recentDocuments.slice(0, 5).map((document) => (
                 <Link
                   key={document.id}
-                  to={`/document/${document.id}`}
+                  to={`/editor/${projects[0]?.id || ''}`}
                   className="flex items-center gap-3 p-3 rounded-md hover:bg-accent/50 transition-colors"
                 >
                   <DocumentTextIcon className="h-4 w-4" />
@@ -220,6 +239,21 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Create Project Dialog */}
+      <ProjectCreateDialog
+        open={showCreateProject}
+        onOpenChange={setShowCreateProject}
+        workspaceId={currentWorkspace?.id}
+        onProjectCreated={(project) => {
+          setProjects([project, ...projects]);
+        }}
+      />
     </div>
   );
+}
+
+// 附加：创建项目对话框（渲染在页面底部以便管理状态）
+export function DashboardWithDialogs() {
+  return null;
 }

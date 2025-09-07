@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/tauri";
 import { useAppStore } from "@/store/app";
 import MarkdownEditor from "@/components/editor/MarkdownEditor";
 import DocumentTree from "@/components/document/DocumentTree";
@@ -118,10 +118,12 @@ export default function DocumentEditor() {
     
     try {
       const newDocument = await invoke("create_document", {
-        project_id: currentProject.id,
-        title: "新文档",
-        content: "",
-        folder_path: parentId?.startsWith('folder-') ? parentId.replace('folder-', '') : null
+        document_data: {
+          project_id: currentProject.id,
+          title: "新文档",
+          content: "",
+          folder_path: parentId?.startsWith('folder-') ? parentId.replace('folder-', '') : null,
+        }
       }) as Document;
       
       setDocuments([...documents, newDocument]);
@@ -179,10 +181,12 @@ export default function DocumentEditor() {
     
     try {
       const newDocument = await invoke("create_document", {
-        project_id: currentProject.id,
-        title: `导入的文档.${format}`,
-        content: content,
-        folder_path: null
+        document_data: {
+          project_id: currentProject.id,
+          title: `导入的文档.${format}`,
+          content: content,
+          folder_path: null,
+        }
       }) as Document;
       
       setDocuments([...documents, newDocument]);
