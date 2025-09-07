@@ -1,7 +1,7 @@
 use crate::models::{
     project::{Project, CreateProjectData, ProjectStats},
     workspace::{Workspace, CreateWorkspaceData},
-    document::{Document, CreateDocumentData, DocumentStats},
+    document::{Document, CreateDocumentData},
     config::AppConfig,
     agent::{AgentModel, InstallAgentInput},
 };
@@ -38,11 +38,12 @@ impl Database {
     }
 
     fn get_data_directory() -> Result<PathBuf> {
-        // 使用当前目录下的 data 文件夹，避免权限问题
-        let current_dir = std::env::current_dir()?;
-        let data_dir = current_dir.join("data");
-        
-        Ok(data_dir)
+        // 使用系统应用数据目录，避免监视器监听到 db 改变触发重建
+        // macOS: ~/Library/Application Support
+        // Windows: %APPDATA%
+        // Linux: ~/.local/share
+        let base = dirs::data_dir().ok_or_else(|| anyhow::anyhow!("No data dir"))?;
+        Ok(base.join("writeflow-studio"))
     }
 
     async fn init_tables(&self) -> Result<()> {

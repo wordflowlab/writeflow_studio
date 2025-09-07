@@ -1,6 +1,5 @@
 use crate::models::environment::{EnvironmentStatus, InstallationResult, EnvSummary};
 use crate::services::environment::EnvironmentService;
-use tauri::State;
 
 #[tauri::command]
 pub async fn check_environment() -> Result<EnvironmentStatus, String> {

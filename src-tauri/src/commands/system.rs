@@ -1,5 +1,4 @@
 use crate::models::system::SystemInfo;
-use std::collections::HashMap;
 
 #[tauri::command]
 pub async fn get_system_info() -> Result<SystemInfo, String> {
