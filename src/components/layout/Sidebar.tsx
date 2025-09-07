@@ -32,7 +32,7 @@ const coreNavigation = [
     name: '环境管理',
     href: '/environment',
     icon: Settings,
-    disabled: true,
+    disabled: false,
   },
   {
     name: 'Agent 管理',

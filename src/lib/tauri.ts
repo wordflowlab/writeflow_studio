@@ -298,6 +298,17 @@ export const invoke = async (command: string, args?: Record<string, any>): Promi
       };
       return newDoc;
     }
+
+    case "check_environment": {
+      // Mock environment check. Real app should invoke Rust commands to detect versions.
+      return {
+        health: 95,
+        issues: 0,
+        node: { installed: true, version: 'v18.19.0' },
+        npm: { installed: true, version: '9.8.0' },
+        writeflow: { installed: true, version: 'v2.15.3' },
+      };
+    }
       
     case "save_config":
     case "update_document_content":

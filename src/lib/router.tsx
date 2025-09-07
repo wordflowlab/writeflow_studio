@@ -5,6 +5,10 @@ import { WorkspacePage } from '@/pages/WorkspacePage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import ProjectView from '@/pages/ProjectView';
 import DocumentEditor from '@/pages/DocumentEditor';
+import AIProviders from '@/pages/AIProviders';
+import MCPServers from '@/pages/MCPServers';
+import WritingPreferences from '@/pages/WritingPreferences';
+import EnvironmentPage from '@/pages/Environment';
 
 export function AppRouter() {
   return (
@@ -14,6 +18,10 @@ export function AppRouter() {
       <Route path="/projects" element={<ProjectsPage />} />
       <Route path="/project/:projectId" element={<ProjectView />} />
       <Route path="/editor/:projectId" element={<DocumentEditor />} />
+      <Route path="/ai-providers" element={<AIProviders />} />
+      <Route path="/mcp-servers" element={<MCPServers />} />
+      <Route path="/writing-preferences" element={<WritingPreferences />} />
+      <Route path="/environment" element={<EnvironmentPage />} />
       <Route path="/workspace" element={<WorkspacePage />} />
       <Route path="/settings" element={<SettingsPage />} />
       
