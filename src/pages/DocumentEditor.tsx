@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { invoke } from "@/lib/tauri";
 import { useAppStore } from "@/store/app";
 import MarkdownEditor from "@/components/editor/MarkdownEditor";
@@ -29,7 +29,8 @@ function debounce<T extends (...args: any[]) => any>(
 }
 
 export default function DocumentEditor() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId, docId } = useParams<{ projectId: string; docId?: string }>();
+  const navigate = useNavigate();
   const { 
     currentProject
   } = useAppStore();
@@ -74,11 +75,9 @@ export default function DocumentEditor() {
         }) as Document[];
         
         setDocuments(projectDocuments);
-        
-        // 如果有文档，选择第一个
-        if (projectDocuments.length > 0 && !selectedDocument) {
-          handleDocumentSelect(projectDocuments[0]);
-        }
+        // 优先选择路由中的 docId
+        const target = (docId && projectDocuments.find(d => d.id === docId)) || projectDocuments[0];
+        if (target) handleDocumentSelect(target);
       } catch (error) {
         console.error("Failed to load documents:", error);
       } finally {
@@ -128,6 +127,7 @@ export default function DocumentEditor() {
       
       setDocuments([...documents, newDocument]);
       handleDocumentSelect(newDocument);
+      navigate(`/editor/${currentProject.id}/${newDocument.id}`);
     } catch (error) {
       console.error("Failed to create document:", error);
     }
@@ -154,6 +154,24 @@ export default function DocumentEditor() {
     if (!selectedDocument) return;
     setImportExportMode('export');
     setShowImportExportDialog(true);
+  };
+
+  // 重命名文档
+  const handleRename = async () => {
+    if (!selectedDocument) return;
+    const title = prompt('重命名文档', selectedDocument.title);
+    if (!title || title === selectedDocument.title) return;
+    try {
+      await invoke('update_document', {
+        document_id: selectedDocument.id,
+        document_data: { ...selectedDocument, title },
+      });
+      const updated = { ...selectedDocument, title } as Document;
+      setSelectedDocument(updated);
+      setDocuments(documents.map(d => d.id === updated.id ? updated : d));
+    } catch (e) {
+      console.error('重命名失败', e);
+    }
   };
 
   // 导入文档
@@ -191,6 +209,7 @@ export default function DocumentEditor() {
       
       setDocuments([...documents, newDocument]);
       handleDocumentSelect(newDocument);
+      navigate(`/editor/${currentProject.id}/${newDocument.id}`);
     } catch (error) {
       console.error("Failed to create document:", error);
     }
@@ -277,6 +296,16 @@ export default function DocumentEditor() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                   </svg>
                   导入
+                </button>
+                <button
+                  onClick={handleRename}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                  title="重命名文档"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5h2m-1 0v14m-7-7h14" />
+                  </svg>
+                  重命名
                 </button>
                 <button
                   onClick={handleExport}

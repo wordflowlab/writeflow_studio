@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Bot, Plus, RefreshCw, Trash2, Power, PowerOff, Download } from 'lucide-react';
+import { invoke } from '@/lib/tauri';
 
 type Agent = {
   id: string;
@@ -24,9 +25,21 @@ const PRESETS: Agent[] = [
 ];
 
 export default function Agents() {
-  const [agents, setAgents] = useState<Agent[]>(PRESETS);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await invoke('list_agents');
+        setAgents(list as Agent[]);
+      } catch (e) {
+        // 初始无数据时，用预设填充便于演示
+        setAgents(PRESETS);
+      }
+    })();
+  }, []);
 
   const filtered = agents.filter(a =>
     [a.name, a.category, a.description].join(' ').includes(keyword)
@@ -36,6 +49,7 @@ export default function Agents() {
     setAgents(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
     const agent = agents.find(a => a.id === id);
     if (agent) {
+      (async () => { try { await invoke('set_agent_enabled', { id, enabled: !agent.enabled }); } catch {} })();
       toast({ title: `${agent.enabled ? '已禁用' : '已启用'}`, description: agent.name });
     }
   };
@@ -44,19 +58,28 @@ export default function Agents() {
     const agent = agents.find(a => a.id === id);
     if (!agent) return;
     if (confirm(`确定卸载 ${agent.name} 吗？`)) {
+      (async () => { try { await invoke('uninstall_agent', { id }); } catch {} })();
       setAgents(prev => prev.filter(a => a.id !== id));
       toast({ title: '已卸载', description: agent.name });
     }
   };
 
   const add = (preset?: Agent) => {
-    const base = preset || { id: `agent-${Date.now()}`, name: '新 Agent', category: '工具效率', version: '0.1.0', enabled: true } as Agent;
-    setAgents(prev => [{ ...base }, ...prev]);
+    const base = preset || { id: '', name: '新 Agent', category: '工具效率', version: '0.1.0', enabled: true } as Agent;
+    (async () => {
+      try {
+        const created = await invoke('install_agent', { input: { name: base.name, category: base.category, version: base.version, description: base.description || null, tags: base.tags || [] } });
+        setAgents(prev => [created as Agent, ...prev]);
+      } catch {
+        setAgents(prev => [{ ...base, id: `agent-${Date.now()}` }, ...prev]);
+      }
+    })();
     setShowAdd(false);
     toast({ title: '安装成功', description: base.name });
   };
 
   const update = (id: string) => {
+    (async () => { try { await invoke('update_agent_version', { id, version: 'latest' }); } catch {} })();
     toast({ title: '已更新', description: `Agent ${id} 已更新到最新版本` });
   };
 
@@ -149,4 +172,3 @@ export default function Agents() {
     </div>
   );
 }
-

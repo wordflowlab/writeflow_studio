@@ -139,6 +139,23 @@ export default function EnvironmentPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>一键安装 / 修复</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button onClick={async () => { setLoading(true); try { await invoke('install_nodejs'); await load(); } finally { setLoading(false);} }} disabled={loading}>
+            安装 Node.js
+          </Button>
+          <Button onClick={async () => { setLoading(true); try { await invoke('install_writeflow_cli'); await load(); } finally { setLoading(false);} }} disabled={loading}>
+            安装 WriteFlow CLI
+          </Button>
+          <Button variant="outline" onClick={async () => { setLoading(true); try { await invoke('repair_environment'); await load(); } finally { setLoading(false);} }} disabled={loading}>
+            修复环境
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -3,6 +3,7 @@ use crate::models::{
     workspace::{Workspace, CreateWorkspaceData},
     document::{Document, CreateDocumentData, DocumentStats},
     config::AppConfig,
+    agent::{AgentModel, InstallAgentInput},
 };
 use sqlx::{SqlitePool, Row};
 use tokio::fs;
@@ -118,6 +119,23 @@ impl Database {
                 id INTEGER PRIMARY KEY,
                 config_data TEXT NOT NULL, -- JSON
                 updated_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Agents table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS agents (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                version TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                description TEXT,
+                tags TEXT NOT NULL -- JSON array
             )
             "#,
         )
@@ -547,6 +565,71 @@ impl Database {
         .execute(&self.pool)
         .await?;
         
+        Ok(())
+    }
+
+    // Agent operations
+    pub async fn list_agents(&self) -> Result<Vec<AgentModel>> {
+        let rows = sqlx::query("SELECT * FROM agents ORDER BY name ASC")
+            .fetch_all(&self.pool)
+            .await?;
+
+        let mut agents = Vec::new();
+        for row in rows {
+            let a = AgentModel {
+                id: row.get("id"),
+                name: row.get("name"),
+                category: row.get("category"),
+                version: row.get("version"),
+                enabled: row.get::<i64, _>("enabled") == 1,
+                description: row.get::<Option<String>, _>("description"),
+                tags: serde_json::from_str(&row.get::<String, _>("tags")).unwrap_or_default(),
+            };
+            agents.push(a);
+        }
+        Ok(agents)
+    }
+
+    pub async fn install_agent(&self, input: InstallAgentInput) -> Result<AgentModel> {
+        let id = format!("agent-{}", uuid::Uuid::new_v4());
+        let tags = serde_json::to_string(&input.tags)?;
+        sqlx::query(
+            r#"INSERT INTO agents (id, name, category, version, enabled, description, tags) VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6)"#,
+        )
+        .bind(&id)
+        .bind(&input.name)
+        .bind(&input.category)
+        .bind(&input.version)
+        .bind(&input.description)
+        .bind(&tags)
+        .execute(&self.pool)
+        .await?;
+        Ok(AgentModel { id, name: input.name, category: input.category, version: input.version, enabled: true, description: input.description, tags: serde_json::from_str(&tags).unwrap_or_default() })
+    }
+
+    pub async fn set_agent_enabled(&self, id: &str, enabled: bool) -> Result<()> {
+        sqlx::query("UPDATE agents SET enabled = ?2 WHERE id = ?1")
+            .bind(id)
+            .bind(if enabled {1} else {0})
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn uninstall_agent(&self, id: &str) -> Result<()> {
+        sqlx::query("DELETE FROM agents WHERE id = ?1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_agent_version(&self, id: &str, version: &str) -> Result<()> {
+        sqlx::query("UPDATE agents SET version = ?2 WHERE id = ?1")
+            .bind(id)
+            .bind(version)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 

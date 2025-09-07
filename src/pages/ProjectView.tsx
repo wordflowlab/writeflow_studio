@@ -160,7 +160,7 @@ export default function ProjectView() {
               {documents.map((document) => (
                 <Link
                   key={document.id}
-                  to={`/editor/${currentProject.id}`}
+                  to={`/editor/${currentProject.id}/${document.id}`}
                   className="flex items-center gap-3 p-4 rounded-md border hover:bg-accent/50 transition-colors"
                 >
                   <DocumentTextIcon className="h-5 w-5 text-muted-foreground" />

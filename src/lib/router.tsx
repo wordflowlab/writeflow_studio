@@ -19,6 +19,7 @@ export function AppRouter() {
       <Route path="/projects" element={<ProjectsPage />} />
       <Route path="/project/:projectId" element={<ProjectView />} />
       <Route path="/editor/:projectId" element={<DocumentEditor />} />
+      <Route path="/editor/:projectId/:docId" element={<DocumentEditor />} />
       <Route path="/ai-providers" element={<AIProviders />} />
       <Route path="/mcp-servers" element={<MCPServers />} />
       <Route path="/writing-preferences" element={<WritingPreferences />} />

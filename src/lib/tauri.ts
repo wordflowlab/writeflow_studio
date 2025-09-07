@@ -318,6 +318,28 @@ export const invoke = async (command: string, args?: Record<string, any>): Promi
         writeflow: { installed: true, version: 'v2.15.3' },
       };
     }
+
+    // Agent commands (mock)
+    case "list_agents": {
+      return [];
+    }
+    case "install_agent": {
+      const input = args?.input || {};
+      return {
+        id: `agent-${Date.now()}`,
+        name: input.name || '新 Agent',
+        category: input.category || '工具效率',
+        version: input.version || '0.1.0',
+        enabled: true,
+        description: input.description || '',
+        tags: input.tags || [],
+      };
+    }
+    case "set_agent_enabled":
+    case "uninstall_agent":
+    case "update_agent_version": {
+      return null;
+    }
       
     case "save_config":
     case "update_document_content":

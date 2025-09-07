@@ -216,7 +216,7 @@ export default function Dashboard() {
               recentDocuments.slice(0, 5).map((document) => (
                 <Link
                   key={document.id}
-                  to={`/editor/${projects[0]?.id || ''}`}
+                  to={`/editor/${document.project_id}/${document.id}`}
                   className="flex items-center gap-3 p-3 rounded-md hover:bg-accent/50 transition-colors"
                 >
                   <DocumentTextIcon className="h-4 w-4" />
