@@ -1,9 +1,10 @@
 {
   "name": "writeflow-studio",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
+    "icon": "tauri icon src-tauri/icons/writeflow-studio-icon-compact.svg -o src-tauri/icons",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",

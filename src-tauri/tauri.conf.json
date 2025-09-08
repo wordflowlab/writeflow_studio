@@ -1,6 +1,6 @@
 {
   "productName": "WriteFlow Studio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.writeflow.studio",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -11,7 +11,13 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": [],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ],
     "category": "Productivity",
     "shortDescription": "WriteFlow Studio - 完整写作平台",
     "longDescription": "集项目管理、文档编辑、AI 写作助手、环境配置于一体的桌面写作应用程序。"
