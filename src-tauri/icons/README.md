@@ -6,21 +6,16 @@
 
 ```
 icons/
-├── README.md                          # 本说明文件
-├── writeflow-studio-icon.svg          # 主图标源文件（完整版本）
-├── writeflow-studio-icon.min.svg      # 主图标源文件（压缩版本）
-├── writeflow-studio-icon-small.svg    # 小尺寸优化版本
-├── generate-icons.sh                  # 图标生成脚本
-├── png/                               # PNG 格式图标
-│   ├── icon-16.png                    # 16x16 像素
-│   ├── icon-32.png                    # 32x32 像素
-│   ├── icon-64.png                    # 64x64 像素
-│   ├── icon-128.png                   # 128x128 像素
-│   ├── icon-256.png                   # 256x256 像素
-│   └── icon-512.png                   # 512x512 像素
-├── writeflow-studio.ico               # Windows 图标文件
-├── WriteFlowStudio.icns               # macOS 图标文件
-└── WriteFlowStudio.iconset/           # macOS 图标集源文件
+├── README.md                                    # 本说明文件  
+├── writeflow-studio-icon-compact.svg           # 主图标源文件（用于生成）
+├── generate-icons.sh                           # 图标生成脚本（优先使用 Tauri CLI）
+├── 32x32.png                                   # 32x32 像素 PNG
+├── 64x64.png                                   # 64x64 像素 PNG  
+├── 128x128.png                                 # 128x128 像素 PNG
+├── 128x128@2x.png                              # 高分辨率 PNG (256x256)
+├── icon.png                                    # 通用图标文件 (主图标)
+├── icon.ico                                    # Windows 图标文件
+└── icon.icns                                   # macOS 图标文件
 ```
 
 ## 设计说明
@@ -39,80 +34,86 @@ icons/
 
 ## 生成流程
 
-### 自动生成
-使用提供的脚本可以自动生成所有尺寸的图标：
+### 推荐方法（使用 Tauri CLI）
+```bash
+# 安装 Tauri CLI
+npm install -g @tauri-apps/cli
+
+# 生成所有平台图标
+cd src-tauri/icons
+tauri icon writeflow-studio-icon-compact.svg
+```
+
+### 备用方法（使用生成脚本）
+如果没有 Tauri CLI，可以使用提供的脚本：
 
 ```bash
-cd src-tauri/icons
+cd src-tauri/icons  
 bash generate-icons.sh
 ```
 
 ### 生成步骤
-1. **SVG 优化**（可选）：使用 svgo 优化 SVG 文件
-2. **PNG 生成**：使用 ImageMagick 生成多种尺寸的 PNG 文件
-   - 小尺寸（16px, 32px）使用简化版 SVG
-   - 大尺寸（64px+）使用完整版 SVG
-3. **ICO 生成**：生成 Windows 专用的 ICO 文件
-4. **ICNS 生成**：生成 macOS 专用的 ICNS 文件
+1. **优先检查 Tauri CLI**：脚本自动检测并使用官方工具
+2. **备用方案**：使用 ImageMagick 生成各平台格式
+3. **自动优化**：根据尺寸选择合适的 SVG 版本
 
 ## 依赖工具
 
-### 必需工具
-- **ImageMagick**：PNG、ICO、ICNS 文件生成
+### 推荐工具
+- **Tauri CLI**：官方图标生成工具（推荐）
   ```bash
-  # macOS
-  brew install imagemagick
-  
-  # Ubuntu/Debian
-  sudo apt install imagemagick
+  npm install -g @tauri-apps/cli
   ```
 
-### 可选工具
-- **svgo**：SVG 文件优化
-  ```bash
-  npm install -g svgo
+### 备用工具（可选）
+- **ImageMagick**：图像格式转换
+  ```bash  
+  # macOS
+  brew install imagemagick
   ```
 
 ## 使用方法
 
-1) **安装依赖工具**
-
+**简单方式**：
 ```bash
-brew install imagemagick   # macOS
-npm i -g svgo              # 可选；脚本会在缺失时跳过优化
-```
-
-2) **生成图标**
-
-```bash
+# 安装 Tauri CLI 并生成图标
+npm install -g @tauri-apps/cli
 cd src-tauri/icons
-chmod +x generate-icons.sh
-bash generate-icons.sh
+tauri icon writeflow-studio-icon-compact.svg
 ```
 
-3) **构建应用** - `tauri.conf.json` 已正确引用生成的图标文件
+**备用方式**：
+```bash
+# 使用生成脚本（自动检测工具）
+cd src-tauri/icons
+./generate-icons.sh
+```
 
 ## 平台兼容性
 
 ### Windows
-- 使用 `writeflow-studio.ico` 文件
-- 包含多种尺寸：16x16, 32x32, 48x48, 256x256
+- 使用 `icon.ico` 文件
+- 自动包含多种尺寸支持
 
-### macOS
-- 使用 `WriteFlowStudio.icns` 文件
-- 包含 Retina 显示屏支持的所有尺寸
+### macOS  
+- 使用 `icon.icns` 文件
+- 包含 Retina 显示屏支持
 
 ### Linux
-- 使用 PNG 文件
-- 支持标准的图标尺寸规范
+- 使用标准 PNG 文件 (32x32, 64x64, 128x128)
+- 支持系统图标主题
 
 ## 维护指南
 
 ### 修改图标
-1. 编辑 `writeflow-studio-icon.svg` 源文件
-2. 如需优化小尺寸显示，同步修改 `writeflow-studio-icon-small.svg`
-3. 运行生成脚本更新所有格式
-4. 测试应用构建确认效果
+1. 编辑 `writeflow-studio-icon-compact.svg` 源文件
+2. 使用 `tauri icon` 命令重新生成所有格式
+3. 测试应用构建确认效果
+
+### 最佳实践
+- 保持 100x100 背景尺寸以匹配 macOS 视觉标准
+- 确保在小尺寸下图标仍清晰可识别
+- 使用简洁的设计元素
 
 ### 质量检查
 - 确保小尺寸（16px, 32px）图标清晰可识别
@@ -120,6 +121,12 @@ bash generate-icons.sh
 - 测试 Retina 显示屏的高分辨率显示
 
 ## 更新日志
+
+- **v1.1** (2024-09-08): 简化目录结构，优化图标尺寸
+  - 清理冗余文件，只保留核心必要文件
+  - 优化图标尺寸到 100x100 背景，匹配 macOS 视觉标准
+  - 优先使用 Tauri 官方工具生成图标
+  - 更新文档和生成脚本
 
 - **v1.0** (2024-09): 初始版本，建立完整的图标资源体系
   - 支持所有主要平台的图标格式
