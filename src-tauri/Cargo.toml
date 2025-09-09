@@ -1,6 +1,6 @@
 [package]
 name = "writeflow-studio"
-version = "0.1.0"
+version = "0.1.2"
 description = "WriteFlow Studio - 完整写作平台"
 authors = ["WriteFlow Team"]
 repository = "https://github.com/writeflow/writeflow-studio"

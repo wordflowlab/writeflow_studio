@@ -1,8 +1,10 @@
 // WriteFlow CLI 集成服务
 // 用于与 WriteFlow CLI 工具交互
 
+#[allow(dead_code)]
 pub struct WriteFlowService;
 
+#[allow(dead_code)]
 impl WriteFlowService {
     pub fn new() -> Self {
         Self

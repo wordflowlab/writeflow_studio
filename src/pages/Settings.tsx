@@ -9,13 +9,17 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Download, Upload, RotateCcw } from "lucide-react";
 
 export default function Settings() {
-  const { config, updateConfig } = useAppStore();
+  const { config, updateConfig, resetConfig } = useAppStore();
   const { toast } = useToast();
   
   const [localConfig, setLocalConfig] = useState(config);
   const [isSaving, setIsSaving] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     setLocalConfig(config);
@@ -72,6 +76,88 @@ export default function Settings() {
       current[path[path.length - 1]] = value;
       return newConfig;
     });
+  };
+
+  const handleExport = async () => {
+    if (!config) return;
+
+    try {
+      setIsExporting(true);
+      
+      // 暂时使用固定路径，稍后可以改为文件对话框
+      const filePath = "/tmp/writeflow-config.json";
+      
+      await invoke("export_config", { config, filePath });
+      toast({
+        title: "导出成功",
+        description: `配置已导出到 ${filePath}`,
+      });
+    } catch (error) {
+      toast({
+        title: "导出失败",
+        description: error instanceof Error ? error.message : "未知错误",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      setIsImporting(true);
+      
+      // 暂时使用固定路径，稍后可以改为文件对话框
+      const filePath = "/tmp/writeflow-config.json";
+      
+      const importedConfig = await invoke("import_config", { filePath }) as typeof config;
+      
+      if (importedConfig) {
+        setLocalConfig(importedConfig);
+        updateConfig(importedConfig as any);
+        
+        toast({
+          title: "导入成功",
+          description: `配置已从 ${filePath} 导入`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "导入失败", 
+        description: error instanceof Error ? error.message : "请检查文件格式是否正确",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleFactoryReset = async () => {
+    try {
+      setIsResetting(true);
+      
+      await resetConfig();
+      
+      // 重新获取最新的配置
+      const newConfig = await invoke("get_config") as typeof config;
+      setLocalConfig(newConfig);
+      if (newConfig) {
+        updateConfig(newConfig as any);
+      }
+      
+      toast({
+        title: "重置成功",
+        description: "所有设置已恢复为默认值",
+      });
+    } catch (error) {
+      toast({
+        title: "重置失败",
+        description: error instanceof Error ? error.message : "未知错误",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   if (!localConfig) {
@@ -319,6 +405,65 @@ export default function Settings() {
                 onCheckedChange={(checked) => updateLocalConfig(['ui', 'show_status_bar'], checked)}
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Configuration Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>配置管理</CardTitle>
+          <CardDescription>导入、导出和重置您的配置设置</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button
+              variant="outline"
+              onClick={handleImport}
+              disabled={isImporting}
+              className="flex items-center gap-2"
+            >
+              {isImporting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-500 border-t-transparent" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {isImporting ? "导入中..." : "导入配置"}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+            >
+              {isExporting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-500 border-t-transparent" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isExporting ? "导出中..." : "导出配置"}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={handleFactoryReset}
+              disabled={isResetting}
+              className="flex items-center gap-2"
+            >
+              {isResetting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-500 border-t-transparent" />
+              ) : (
+                <RotateCcw className="h-4 w-4" />
+              )}
+              {isResetting ? "重置中..." : "恢复默认"}
+            </Button>
+          </div>
+
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p><strong>导入配置:</strong> 从 JSON 文件导入配置设置</p>
+            <p><strong>导出配置:</strong> 将当前配置保存到 JSON 文件</p>
+            <p><strong>恢复默认:</strong> 将所有设置重置为默认值（此操作不可撤销）</p>
           </div>
         </CardContent>
       </Card>

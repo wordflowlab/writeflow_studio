@@ -31,7 +31,7 @@ export default function WorkspaceEditDialog({ open, onOpenChange, workspace, onU
     }
     setLoading(true);
     try {
-      const ws = await invoke('update_workspace', { workspace_id: workspace.id, name: form.name.trim(), description: form.description.trim() });
+      const ws = await invoke('update_workspace', { workspaceId: workspace.id, name: form.name.trim(), description: form.description.trim() });
       toast({ title: '已保存' });
       onOpenChange(false);
       onUpdated?.(ws);
@@ -48,7 +48,7 @@ export default function WorkspaceEditDialog({ open, onOpenChange, workspace, onU
         <DialogHeader>
           <DialogTitle>编辑工作区</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 pt-2">
+        <div className="pt-2 space-y-3">
           <div className="space-y-2">
             <Label htmlFor="ws-name-edit">名称</Label>
             <Input id="ws-name-edit" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -57,7 +57,7 @@ export default function WorkspaceEditDialog({ open, onOpenChange, workspace, onU
             <Label htmlFor="ws-desc-edit">描述</Label>
             <Textarea id="ws-desc-edit" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={3} />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>取消</Button>
             <Button onClick={submit} disabled={loading}>{loading ? '保存中...' : '保存'}</Button>
           </div>

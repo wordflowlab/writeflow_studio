@@ -98,6 +98,7 @@ impl Document {
         }
     }
 
+    #[allow(dead_code)]
     pub fn update_content(&mut self, content: String) {
         self.content = content.clone();
         self.word_count = content.split_whitespace().count() as u32;
@@ -108,6 +109,7 @@ impl Document {
         self.last_accessed = Utc::now();
     }
 
+    #[allow(dead_code)]
     pub fn update_status(&mut self, status: DocumentStatus) {
         self.status = status;
         self.updated_at = Utc::now();

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { invoke } from '@/lib/tauri';
+import { invoke } from '@/lib/invokeCompat';
 
 interface Props {
   open: boolean;
@@ -32,7 +32,7 @@ export default function ProjectEditDialog({ open, onOpenChange, project, onUpdat
     setLoading(true);
     try {
       const updated = { ...project, name: form.name.trim(), description: form.description.trim() };
-      await invoke('update_project', { project_id: project.id, project_data: updated });
+      await invoke('update_project', { projectId: project.id, projectData: updated });
       toast({ title: '项目已保存' });
       onOpenChange(false);
       onUpdated?.(updated);
@@ -49,7 +49,7 @@ export default function ProjectEditDialog({ open, onOpenChange, project, onUpdat
         <DialogHeader>
           <DialogTitle>编辑项目</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 pt-2">
+        <div className="pt-2 space-y-3">
           <div className="space-y-2">
             <Label htmlFor="p-name-edit">名称</Label>
             <Input id="p-name-edit" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -58,7 +58,7 @@ export default function ProjectEditDialog({ open, onOpenChange, project, onUpdat
             <Label htmlFor="p-desc-edit">描述</Label>
             <Textarea id="p-desc-edit" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={3} />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>取消</Button>
             <Button onClick={submit} disabled={loading}>{loading ? '保存中...' : '保存'}</Button>
           </div>
@@ -67,4 +67,3 @@ export default function ProjectEditDialog({ open, onOpenChange, project, onUpdat
     </Dialog>
   );
 }
-

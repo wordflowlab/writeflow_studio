@@ -37,4 +37,6 @@ lerna-debug.log*
 # Tauri / Rust
 target/
 src-tauri/target/
+.codebuddy
+.gemini-clipboard
 

@@ -37,7 +37,7 @@ export default function ProjectView() {
     try {
       setLoading(true);
       const projectDocuments = await invoke("get_documents_by_project", {
-        project_id: id,
+        projectId: id,
       });
       setDocuments(projectDocuments);
     } catch (error) {
@@ -51,7 +51,7 @@ export default function ProjectView() {
     if (!currentProject) return;
     try {
       await invoke("create_document", {
-        document_data: {
+        documentData: {
           project_id: currentProject.id,
           title: "新文档",
           content: "",
@@ -68,9 +68,9 @@ export default function ProjectView() {
 
   if (!currentProject) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex justify-center items-center h-full">
         <div className="text-center">
-          <h2 className="text-lg font-semibold mb-2">项目未找到</h2>
+          <h2 className="mb-2 text-lg font-semibold">项目未找到</h2>
           <p className="text-muted-foreground">请检查项目ID是否正确</p>
         </div>
       </div>
@@ -78,25 +78,25 @@ export default function ProjectView() {
   }
 
   return (
-    <div className="h-full overflow-auto p-6 space-y-6">
+    <div className="overflow-auto p-6 space-y-6 h-full">
       {/* Project Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex justify-between items-center">
+        <div className="flex gap-4 items-center">
           <div
             className="w-4 h-4 rounded-full"
             style={{ backgroundColor: currentProject.color }}
           />
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <FolderIcon className="h-6 w-6" />
+            <h1 className="flex gap-2 items-center text-2xl font-bold">
+              <FolderIcon className="w-6 h-6" />
               {currentProject.name}
             </h1>
             <p className="text-muted-foreground">{currentProject.description}</p>
           </div>
         </div>
 
-        <Button onClick={handleCreateDocument} className="flex items-center gap-2">
-          <PlusIcon className="h-4 w-4" />
+        <Button onClick={handleCreateDocument} className="flex gap-2 items-center">
+          <PlusIcon className="w-4 h-4" />
           新建文档
         </Button>
       </div>
@@ -109,7 +109,7 @@ export default function ProjectView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentProject.documents_count}</div>
-            <p className="text-xs text-muted-foreground mt-1">个文档</p>
+            <p className="mt-1 text-xs text-muted-foreground">个文档</p>
           </CardContent>
         </Card>
 
@@ -119,7 +119,7 @@ export default function ProjectView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentProject.words_count.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">字</p>
+            <p className="mt-1 text-xs text-muted-foreground">字</p>
           </CardContent>
         </Card>
 
@@ -129,9 +129,9 @@ export default function ProjectView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentProject.progress}%</div>
-            <div className="w-full bg-muted rounded-full h-2 mt-2">
+            <div className="mt-2 w-full h-2 rounded-full bg-muted">
               <div 
-                className="bg-primary h-2 rounded-full transition-all"
+                className="h-2 rounded-full transition-all bg-primary"
                 style={{ width: `${currentProject.progress}%` }}
               />
             </div>
@@ -152,7 +152,7 @@ export default function ProjectView() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="py-8 text-center text-muted-foreground">
               加载中...
             </div>
           ) : documents.length > 0 ? (
@@ -161,18 +161,18 @@ export default function ProjectView() {
                 <Link
                   key={document.id}
                   to={`/editor/${currentProject.id}/${document.id}`}
-                  className="flex items-center gap-3 p-4 rounded-md border hover:bg-accent/50 transition-colors"
+                  className="flex gap-3 items-center p-4 rounded-md border transition-colors hover:bg-accent/50"
                 >
-                  <DocumentTextIcon className="h-5 w-5 text-muted-foreground" />
+                  <DocumentTextIcon className="w-5 h-5 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm mb-1">{document.title}</div>
-                    <div className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                    <div className="mb-1 text-sm font-medium">{document.title}</div>
+                    <div className="mb-2 text-xs text-muted-foreground line-clamp-2">
                       {document.content.substring(0, 100)}
                       {document.content.length > 100 ? '...' : ''}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex gap-4 items-center text-xs text-muted-foreground">
                       <span>{document.word_count} 字</span>
-                      <span className="px-2 py-1 bg-muted rounded-full">
+                      <span className="px-2 py-1 rounded-full bg-muted">
                         {document.status}
                       </span>
                       <span>{formatDate(document.updated_at)}</span>
@@ -182,14 +182,14 @@ export default function ProjectView() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <DocumentTextIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-medium mb-2">暂无文档</h3>
-              <p className="text-muted-foreground text-sm mb-4">
+            <div className="py-8 text-center">
+              <DocumentTextIcon className="mx-auto mb-4 w-12 h-12 text-muted-foreground" />
+              <h3 className="mb-2 font-medium">暂无文档</h3>
+              <p className="mb-4 text-sm text-muted-foreground">
                 开始创建第一个文档来记录您的想法
               </p>
               <Button onClick={handleCreateDocument}>
-                <PlusIcon className="h-4 w-4 mr-2" />
+                <PlusIcon className="mr-2 w-4 h-4" />
                 创建文档
               </Button>
             </div>

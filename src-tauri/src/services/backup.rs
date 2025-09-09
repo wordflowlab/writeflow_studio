@@ -1,8 +1,10 @@
 // 备份服务模块
 // 用于自动备份和文档恢复
 
+#[allow(dead_code)]
 pub struct BackupService;
 
+#[allow(dead_code)]
 impl BackupService {
     pub fn new() -> Self {
         Self

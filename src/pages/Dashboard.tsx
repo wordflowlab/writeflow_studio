@@ -71,7 +71,7 @@ export default function Dashboard() {
     if (!targetProject) return;
     try {
       await invoke("create_document", {
-        document_data: {
+        documentData: {
           project_id: targetProject.id,
           title: "新文档",
           content: "",
@@ -87,9 +87,9 @@ export default function Dashboard() {
 
   if (!currentWorkspace) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex justify-center items-center h-full">
         <div className="text-center">
-          <h2 className="text-lg font-semibold mb-2">没有选择工作空间</h2>
+          <h2 className="mb-2 text-lg font-semibold">没有选择工作空间</h2>
           <p className="text-muted-foreground">请在侧边栏中选择一个工作空间</p>
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-full overflow-auto p-6 space-y-6">
+    <div className="overflow-auto p-6 space-y-6 h-full">
       {/* Welcome Section */}
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">欢迎回来！</h1>
@@ -109,9 +109,9 @@ export default function Dashboard() {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row justify-between items-center pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">总项目数</CardTitle>
-            <FolderIcon className="h-4 w-4 text-muted-foreground" />
+            <FolderIcon className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalProjects}</div>
@@ -120,9 +120,9 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row justify-between items-center pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">总文档数</CardTitle>
-            <DocumentTextIcon className="h-4 w-4 text-muted-foreground" />
+            <DocumentTextIcon className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalDocuments}</div>
@@ -131,9 +131,9 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row justify-between items-center pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">总字数</CardTitle>
-            <DocumentTextIcon className="h-4 w-4 text-muted-foreground" />
+            <DocumentTextIcon className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalWords.toLocaleString()}</div>
@@ -142,9 +142,9 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row justify-between items-center pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">最近活动</CardTitle>
-            <ClockIcon className="h-4 w-4 text-muted-foreground" />
+            <ClockIcon className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.recentActivity}</div>
@@ -155,12 +155,12 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="flex gap-4">
-        <Button onClick={handleCreateProject} className="flex items-center gap-2">
-          <PlusIcon className="h-4 w-4" />
+        <Button onClick={handleCreateProject} className="flex gap-2 items-center">
+          <PlusIcon className="w-4 h-4" />
           新建项目
         </Button>
-        <Button variant="outline" onClick={handleCreateDocument} className="flex items-center gap-2">
-          <PlusIcon className="h-4 w-4" />
+        <Button variant="outline" onClick={handleCreateDocument} className="flex gap-2 items-center">
+          <PlusIcon className="w-4 h-4" />
           新建文档
         </Button>
       </div>
@@ -178,17 +178,17 @@ export default function Dashboard() {
               recentProjects.slice(0, 5).map((project) => (
                 <div
                   key={project.id}
-                  className="flex items-center gap-3 p-3 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
+                  className="flex gap-3 items-center p-3 rounded-md transition-colors cursor-pointer hover:bg-accent/50"
                   onClick={() => setCurrentProject(project)}
                 >
                   <div
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: project.color }}
                   />
-                  <FolderIcon className="h-4 w-4" />
+                  <FolderIcon className="w-4 h-4" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{project.name}</div>
-                    <div className="text-xs text-muted-foreground truncate">
+                    <div className="text-sm font-medium truncate">{project.name}</div>
+                    <div className="text-xs truncate text-muted-foreground">
                       {project.documents_count} 个文档 · {project.words_count} 字
                     </div>
                   </div>
@@ -198,7 +198,7 @@ export default function Dashboard() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-4 text-muted-foreground">
+              <div className="py-4 text-center text-muted-foreground">
                 暂无最近项目
               </div>
             )}
@@ -217,12 +217,12 @@ export default function Dashboard() {
                 <Link
                   key={document.id}
                   to={`/editor/${document.project_id}/${document.id}`}
-                  className="flex items-center gap-3 p-3 rounded-md hover:bg-accent/50 transition-colors"
+                  className="flex gap-3 items-center p-3 rounded-md transition-colors hover:bg-accent/50"
                 >
-                  <DocumentTextIcon className="h-4 w-4" />
+                  <DocumentTextIcon className="w-4 h-4" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{document.title}</div>
-                    <div className="text-xs text-muted-foreground truncate">
+                    <div className="text-sm font-medium truncate">{document.title}</div>
+                    <div className="text-xs truncate text-muted-foreground">
                       {document.word_count} 字 · {document.status}
                     </div>
                   </div>
@@ -232,7 +232,7 @@ export default function Dashboard() {
                 </Link>
               ))
             ) : (
-              <div className="text-center py-4 text-muted-foreground">
+              <div className="py-4 text-center text-muted-foreground">
                 暂无最近文档
               </div>
             )}

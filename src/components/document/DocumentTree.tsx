@@ -1,5 +1,6 @@
 import { useState, useMemo, memo } from 'react';
 import { cn } from '@/lib/utils';
+import { Document } from '@/types/document';
 import {
   FileText,
   Folder,
@@ -7,16 +8,6 @@ import {
   Plus,
   MoreHorizontal
 } from 'lucide-react';
-
-interface Document {
-  id: string;
-  title: string;
-  content: string;
-  project_id: string;
-  folder_path?: string;
-  created_at: string;
-  updated_at: string;
-}
 
 interface DocumentNode {
   id: string;
@@ -114,49 +105,49 @@ const TreeNode = memo(function TreeNode({
     <div>
       <div
         className={cn(
-          "group flex items-center justify-between px-2 py-1 cursor-pointer rounded-md transition-colors",
+          "flex justify-between items-center px-2 py-1 rounded-md transition-colors cursor-pointer group",
           isSelected 
-            ? "bg-blue-100 text-blue-700" 
-            : "hover:bg-gray-100 text-gray-700"
+            ? "text-blue-700 bg-blue-100" 
+            : "text-gray-700 hover:bg-gray-100"
         )}
         style={{ paddingLeft: `${8 + level * 16}px` }}
         onClick={handleClick}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       >
-        <div className="flex items-center space-x-2 flex-1 min-w-0">
+        <div className="flex flex-1 items-center space-x-2 min-w-0">
           {node.type === 'folder' ? (
             isExpanded ? (
-              <FolderOpen className="h-4 w-4 flex-shrink-0" />
+              <FolderOpen className="flex-shrink-0 w-4 h-4" />
             ) : (
-              <Folder className="h-4 w-4 flex-shrink-0" />
+              <Folder className="flex-shrink-0 w-4 h-4" />
             )
           ) : (
-            <FileText className="h-4 w-4 flex-shrink-0" />
+            <FileText className="flex-shrink-0 w-4 h-4" />
           )}
           <span className="text-sm truncate">{node.name}</span>
         </div>
 
         {/* 操作按钮 */}
         {(showActions || isSelected) && (
-          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
             {node.type === 'folder' && onDocumentCreate && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onDocumentCreate(node.id);
                 }}
-                className="p-1 hover:bg-gray-200 rounded"
+                className="p-1 rounded hover:bg-gray-200"
                 title="新建文档"
               >
-                <Plus className="h-3 w-3" />
+                <Plus className="w-3 h-3" />
               </button>
             )}
             <button
-              className="p-1 hover:bg-gray-200 rounded"
+              className="p-1 rounded hover:bg-gray-200"
               title="更多操作"
             >
-              <MoreHorizontal className="h-3 w-3" />
+              <MoreHorizontal className="w-3 h-3" />
             </button>
           </div>
         )}
@@ -193,16 +184,16 @@ export default function DocumentTree({
   const tree = useMemo(() => buildDocumentTree(documents), [documents]);
 
   return (
-    <div className={cn('h-full overflow-auto', className)}>
+    <div className={cn('overflow-auto h-full', className)}>
       <div className="p-2">
         {tree.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <div className="py-8 text-center text-gray-500">
+            <FileText className="mx-auto mb-2 w-8 h-8 opacity-50" />
             <p className="text-sm">暂无文档</p>
             {onDocumentCreate && (
               <button
                 onClick={() => onDocumentCreate()}
-                className="mt-2 text-blue-600 hover:text-blue-700 text-sm"
+                className="mt-2 text-sm text-blue-600 hover:text-blue-700"
               >
                 创建第一个文档
               </button>

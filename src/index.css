@@ -73,6 +73,64 @@
   @apply h-full overflow-auto p-4;
 }
 
+/* Document Editor Layout Fixes - Enhanced Anti-Overlap */
+.document-editor-container {
+  isolation: isolate;
+  contain: layout style;
+}
+
+.document-editor-anti-overlap {
+  position: relative !important;
+  z-index: 10 !important;
+  transform: translateZ(0) !important;
+  isolation: isolate !important;
+  contain: layout !important;
+  background: inherit !important;
+}
+
+/* 强制分离关键UI区域 */
+.sidebar-section {
+  position: relative !important;
+  z-index: 1 !important;
+  transform: translateZ(0) !important;
+  isolation: isolate !important;
+  background: inherit !important;
+  border-radius: inherit !important;
+}
+
+.main-editor-section {
+  position: relative !important;
+  z-index: 1 !important;
+  transform: translateZ(0) !important;
+  isolation: isolate !important;
+  background: inherit !important;
+}
+
+.right-panel-section {
+  position: relative !important;
+  z-index: 1 !important;
+  transform: translateZ(0) !important;
+  isolation: isolate !important;
+  background: inherit !important;
+}
+
+/* 调试模式 - 临时边界显示 */
+.debug-boundaries {
+  outline: 1px solid rgba(255, 0, 0, 0.3) !important;
+}
+
+.debug-boundaries .sidebar-section {
+  outline: 1px solid rgba(0, 255, 0, 0.3) !important;
+}
+
+.debug-boundaries .main-editor-section {
+  outline: 1px solid rgba(0, 0, 255, 0.3) !important;
+}
+
+.debug-boundaries .right-panel-section {
+  outline: 1px solid rgba(255, 255, 0, 0.3) !important;
+}
+
 .sidebar-nav {
   @apply space-y-1;
 }

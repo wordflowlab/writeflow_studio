@@ -113,10 +113,12 @@ impl Default for ToolInfo {
 }
 
 impl EnvironmentInfo {
+    #[allow(dead_code)]
     pub fn check_compatibility(&self) -> CompatibilityStatus {
         self.writeflow.compatibility.clone()
     }
 
+    #[allow(dead_code)]
     pub fn get_missing_tools(&self) -> Vec<String> {
         let mut missing = Vec::new();
         
@@ -139,6 +141,7 @@ impl EnvironmentInfo {
         missing
     }
 
+    #[allow(dead_code)]
     pub fn is_ready(&self) -> bool {
         matches!(self.status, EnvironmentStatus::Ready)
     }

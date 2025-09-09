@@ -1,558 +1,364 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Brain, Trash2, TestTube, Check, AlertCircle, Loader2 } from "lucide-react";
+import { useAppStore, AIProvider } from "@/store/app";
+import { Brain, Download, Search, Sparkles, Zap, Bot, Star, Globe } from "lucide-react";
 
-interface AIProvider {
+type AIProviderCatalog = {
   id: string;
   name: string;
-  modelName: string;
-  apiKey: string;
-  baseUrl?: string;
-  icon: string;
-  bgColor: string;
-  status: 'connected' | 'testing' | 'error' | 'disconnected';
-  statusText: string;
-  maxTokens: number;
-  contextLength: number;
-  lastTested: string;
-  description?: string;
-  priority?: number; // 用于模型指针排序
-  modelPointer?: 'main' | 'task' | 'inference' | null; // 模型指针类型
-}
+  category: string;
+  description: string;
+  isInstalled: boolean;
+  icon?: React.ComponentType<{ className?: string }>;
+  template: AIProvider;
+};
 
-// 支持的 AI 提供商模板 - 基于 PRD.md 需求的 12+ 提供商
-const PROVIDER_TEMPLATES = [
+// 精选 AI 提供商目录
+const AI_CATALOG_PRESETS: AIProviderCatalog[] = [
   {
-    name: "OpenAI",
-    icon: "brain",
-    bgColor: "bg-green-600",
-    defaultModel: "gpt-4",
-    maxTokens: 4096,
-    contextLength: 128000,
-    baseUrl: "https://api.openai.com/v1",
-    description: "OpenAI GPT 系列模型"
+    id: 'openai',
+    name: 'OpenAI',
+    category: '通用 AI',
+    description: '业界领先的大语言模型，支持 GPT-4 系列，适合各种写作任务',
+    isInstalled: false,
+    icon: Sparkles,
+    template: {
+      name: "OpenAI",
+      provider_type: "openai",
+      api_base: "https://api.openai.com/v1",
+      model: "gpt-4",
+      max_tokens: 4096,
+      temperature: 0.7,
+      enabled: true,
+    },
   },
   {
-    name: "Anthropic",
-    icon: "brain", 
-    bgColor: "bg-orange-600",
-    defaultModel: "claude-3-sonnet-20240229",
-    maxTokens: 4096,
-    contextLength: 200000,
-    baseUrl: "https://api.anthropic.com",
-    description: "Anthropic Claude 系列模型"
+    id: 'anthropic',
+    name: 'Anthropic Claude',
+    category: '安全 AI',
+    description: 'Claude 系列模型，擅长长文本处理和逻辑推理，写作质量优秀',
+    isInstalled: true,
+    icon: Brain,
+    template: {
+      name: "Anthropic",
+      provider_type: "anthropic",
+      api_base: "https://api.anthropic.com",
+      model: "claude-3-sonnet-20240229",
+      max_tokens: 4096,
+      temperature: 0.7,
+      enabled: true,
+    },
   },
   {
-    name: "DeepSeek",
-    icon: "brain",
-    bgColor: "bg-blue-600", 
-    defaultModel: "deepseek-chat",
-    maxTokens: 4096,
-    contextLength: 32768,
-    baseUrl: "https://api.deepseek.com/v1",
-    description: "DeepSeek 深度求索模型"
+    id: 'deepseek',
+    name: 'DeepSeek',
+    category: '中文优化',
+    description: '专为中文优化的大语言模型，在中文写作和代码生成方面表现出色',
+    isInstalled: false,
+    icon: Zap,
+    template: {
+      name: "DeepSeek",
+      provider_type: "deepseek",
+      api_base: "https://api.deepseek.com/v1",
+      model: "deepseek-chat",
+      max_tokens: 4096,
+      temperature: 0.7,
+      enabled: true,
+    },
   },
   {
-    name: "Kimi",
-    icon: "brain",
-    bgColor: "bg-purple-600",
-    defaultModel: "moonshot-v1-8k",
-    maxTokens: 4096,
-    contextLength: 8192,
-    baseUrl: "https://api.moonshot.cn/v1",
-    description: "Kimi 月之暗面模型"
+    id: 'kimi',
+    name: 'Kimi (月之暗面)',
+    category: '长文本',
+    description: '支持超长上下文的 AI 模型，适合处理大型文档和复杂写作项目',
+    isInstalled: true,
+    icon: Star,
+    template: {
+      name: "Kimi",
+      provider_type: "kimi",
+      api_base: "https://api.moonshot.cn/v1",
+      model: "moonshot-v1-8k",
+      max_tokens: 8000,
+      temperature: 0.7,
+      enabled: true,
+    },
   },
   {
-    name: "BigDream",
-    icon: "brain",
-    bgColor: "bg-indigo-600",
-    defaultModel: "bigdream-chat",
-    maxTokens: 4096,
-    contextLength: 16384,
-    baseUrl: "https://api.bigdream.ai/v1",
-    description: "BigDream AI 模型"
+    id: 'qwen',
+    name: '通义千问',
+    category: '中文优化',
+    description: '阿里巴巴推出的中文大语言模型，在中文理解和生成方面表现优异',
+    isInstalled: false,
+    icon: Globe,
+    template: {
+      name: "通义千问",
+      provider_type: "qwen",
+      api_base: "https://dashscope.aliyuncs.com/api/v1",
+      model: "qwen-turbo",
+      max_tokens: 2000,
+      temperature: 0.7,
+      enabled: true,
+    },
   },
   {
-    name: "Gemini",
-    icon: "brain",
-    bgColor: "bg-blue-500",
-    defaultModel: "gemini-pro",
-    maxTokens: 4096,
-    contextLength: 30720,
-    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
-    description: "Google Gemini 模型"
+    id: 'zhipu',
+    name: '智谱 GLM',
+    category: '多模态',
+    description: '支持文本和图像理解的多模态 AI，适合需要图文结合的写作场景',
+    isInstalled: false,
+    icon: Bot,
+    template: {
+      name: "智谱 GLM",
+      provider_type: "zhipu",
+      api_base: "https://open.bigmodel.cn/api/paas/v4",
+      model: "glm-4",
+      max_tokens: 4096,
+      temperature: 0.7,
+      enabled: true,
+    },
   },
-  {
-    name: "Qwen",
-    icon: "brain",
-    bgColor: "bg-red-600",
-    defaultModel: "qwen-turbo",
-    maxTokens: 4096,
-    contextLength: 8192,
-    baseUrl: "https://dashscope.aliyuncs.com/api/v1",
-    description: "阿里巴巴通义千问模型"
-  },
-  {
-    name: "ChatGLM",
-    icon: "brain",
-    bgColor: "bg-teal-600",
-    defaultModel: "glm-4",
-    maxTokens: 4096,
-    contextLength: 128000,
-    baseUrl: "https://open.bigmodel.cn/api/paas/v4",
-    description: "智谱 ChatGLM 模型"
-  },
-  {
-    name: "Baichuan",
-    icon: "brain",
-    bgColor: "bg-amber-600",
-    defaultModel: "baichuan2-turbo",
-    maxTokens: 4096,
-    contextLength: 32768,
-    baseUrl: "https://api.baichuan-ai.com/v1",
-    description: "百川智能模型"
-  },
-  {
-    name: "Hunyuan",
-    icon: "brain",
-    bgColor: "bg-cyan-600",
-    defaultModel: "hunyuan-lite",
-    maxTokens: 4096,
-    contextLength: 32768,
-    baseUrl: "https://hunyuan.tencentcloudapi.com/v1",
-    description: "腾讯混元模型"
-  },
-  {
-    name: "Spark",
-    icon: "brain",
-    bgColor: "bg-violet-600",
-    defaultModel: "generalv3",
-    maxTokens: 4096,
-    contextLength: 8192,
-    baseUrl: "https://spark-api.xf-yun.com/v3.1",
-    description: "讯飞星火模型"
-  },
-  {
-    name: "Yi",
-    icon: "brain",
-    bgColor: "bg-emerald-600",
-    defaultModel: "yi-large",
-    maxTokens: 4096,
-    contextLength: 32768,
-    baseUrl: "https://api.lingyiwanwu.com/v1",
-    description: "零一万物 Yi 系列模型"
-  },
-  {
-    name: "自定义",
-    icon: "brain",
-    bgColor: "bg-gray-600",
-    defaultModel: "",
-    maxTokens: 4096,
-    contextLength: 32768,
-    baseUrl: "",
-    description: "自定义 AI 提供商配置"
-  }
 ];
 
 export default function AIProviders() {
-  const [providers, setProviders] = useState<AIProvider[]>([
-    {
-      id: "1",
-      name: "OpenAI GPT-4",
-      modelName: "gpt-4",
-      apiKey: "sk-***", 
-      icon: "brain",
-      bgColor: "bg-green-600",
-      status: "connected",
-      statusText: "已连接",
-      maxTokens: 4096,
-      contextLength: 128000,
-      lastTested: "刚刚"
-    },
-    {
-      id: "2", 
-      name: "Claude 3 Sonnet",
-      modelName: "claude-3-sonnet-20240229",
-      apiKey: "sk-ant-***",
-      icon: "brain",
-      bgColor: "bg-orange-600", 
-      status: "error",
-      statusText: "连接失败",
-      maxTokens: 4096,
-      contextLength: 200000,
-      lastTested: "5分钟前"
-    }
-  ]);
-
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newProvider, setNewProvider] = useState({
-    name: "",
-    apiKey: "",
-    modelName: "",
-    baseUrl: "",
-    template: "",
-    description: "",
-    modelPointer: null as 'main' | 'task' | 'inference' | null
+  const { config, saveConfig, testAIProvider } = useAppStore();
+  const [catalog, setCatalog] = useState<AIProviderCatalog[]>(AI_CATALOG_PRESETS);
+  const [keyword, setKeyword] = useState('');
+  const [apiKeyDialog, setApiKeyDialog] = useState<{ open: boolean; providerId: string | null }>({
+    open: false,
+    providerId: null,
   });
+  const [apiKey, setApiKey] = useState('');
 
-  // 测试提供商连接
-  const testProviderConnection = async (provider: AIProvider) => {
-    setProviders(prev => prev.map(p => 
-      p.id === provider.id 
-        ? { ...p, status: 'testing', statusText: '测试中...' }
-        : p
-    ));
+  const providers = config?.ai_providers?.providers || {};
+  const providersList = Object.entries(providers);
 
-    toast({
-      title: "测试连接",
-      description: `正在测试 ${provider.name} 连接...`
-    });
+  // 从后端获取已安装列表，与本地目录合并状态
+  useEffect(() => {
+    const installedNames = new Set(providersList.map(([_, provider]) => provider.name));
+    setCatalog((prev) =>
+      prev.map((item) => ({
+        ...item,
+        isInstalled: installedNames.has(item.template.name),
+      }))
+    );
+  }, [config]);
+
+  const filtered = useMemo(
+    () =>
+      catalog.filter((item) =>
+        `${item.name} ${item.category} ${item.description}`.toLowerCase().includes(keyword.toLowerCase())
+      ),
+    [catalog, keyword]
+  );
+
+  const handleInstallClick = (id: string) => {
+    setApiKeyDialog({ open: true, providerId: id });
+    setApiKey('');
+  };
+
+  const install = async () => {
+    const { providerId } = apiKeyDialog;
+    if (!providerId || !apiKey.trim()) return;
+
+    const target = catalog.find((item) => item.id === providerId);
+    if (!target || !config) return;
 
     try {
-      // 模拟 API 调用
-      setTimeout(() => {
-        const success = Math.random() > 0.3;
-        setProviders(prev => prev.map(p => 
-          p.id === provider.id 
-            ? { 
-                ...p, 
-                status: success ? 'connected' : 'error',
-                statusText: success ? '已连接' : '连接失败',
-                lastTested: '刚刚'
-              }
-            : p
-        ));
+      const providerInstanceId = `${target.id}_${Date.now()}`;
+      const newProvider = { 
+        ...target.template,
+        api_key: apiKey.trim(),
+      };
 
-        toast({
-          title: success ? "连接成功" : "连接失败",
-          description: `${provider.name} ${success ? '连接成功' : '连接失败，请检查 API 密钥'}`,
-          variant: success ? "default" : "destructive"
-        });
-      }, 2000);
+      const updatedConfig = {
+        ...config,
+        ai_providers: {
+          ...config.ai_providers,
+          providers: {
+            ...config.ai_providers.providers,
+            [providerInstanceId]: newProvider,
+          },
+        },
+      };
+
+      await saveConfig(updatedConfig);
+      setCatalog((prev) => prev.map((item) => (item.id === providerId ? { ...item, isInstalled: true } : item)));
+      
+      toast({
+        title: "安装成功",
+        description: `AI 提供商 "${target.name}" 已添加`,
+      });
+
+      setApiKeyDialog({ open: false, providerId: null });
+      setApiKey('');
     } catch (error) {
-      console.error("测试连接失败:", error);
       toast({
-        title: "测试失败",
-        description: "网络错误，请稍后重试",
-        variant: "destructive"
+        title: "安装失败",
+        description: error instanceof Error ? error.message : "未知错误",
+        variant: "destructive",
       });
     }
   };
 
-  // 删除提供商
-  const deleteProvider = (providerId: string) => {
-    const provider = providers.find(p => p.id === providerId);
-    if (!provider) return;
+  const uninstall = async (id: string) => {
+    const target = catalog.find((item) => item.id === id);
+    if (!target || !config) return;
 
-    if (confirm(`确定要删除 ${provider.name} 吗？`)) {
-      setProviders(prev => prev.filter(p => p.id !== providerId));
-      toast({
-        title: "删除成功",
-        description: `${provider.name} 已删除`
+    try {
+      // 查找并删除匹配的提供商
+      const matchingProviders = providersList.filter(([_, provider]) => provider.name === target.template.name);
+      const updatedProviders = { ...config.ai_providers.providers };
+      
+      matchingProviders.forEach(([providerId]) => {
+        delete updatedProviders[providerId];
       });
-    }
-  };
 
-  // 添加新提供商
-  const addProvider = () => {
-    if (!newProvider.name || !newProvider.apiKey) {
+      const updatedConfig = {
+        ...config,
+        ai_providers: {
+          ...config.ai_providers,
+          providers: updatedProviders,
+          default_provider: config.ai_providers.default_provider && 
+                           matchingProviders.some(([pid]) => pid === config.ai_providers.default_provider)
+                           ? null : config.ai_providers.default_provider,
+        },
+      };
+
+      await saveConfig(updatedConfig);
+      setCatalog((prev) => prev.map((item) => (item.id === id ? { ...item, isInstalled: false } : item)));
+      
       toast({
-        title: "表单验证失败",
-        description: "请填写必要信息",
-        variant: "destructive"
+        title: "已卸载",
+        description: `AI 提供商 "${target.name}" 已删除`,
       });
-      return;
-    }
-
-    const template = PROVIDER_TEMPLATES.find(t => t.name === newProvider.template) || PROVIDER_TEMPLATES[PROVIDER_TEMPLATES.length - 1];
-    
-    const provider: AIProvider = {
-      id: Date.now().toString(),
-      name: newProvider.name,
-      modelName: newProvider.modelName || template.defaultModel,
-      apiKey: newProvider.apiKey,
-      baseUrl: newProvider.baseUrl || template.baseUrl,
-      icon: template.icon,
-      bgColor: template.bgColor,
-      status: 'testing',
-      statusText: '测试中...',
-      maxTokens: template.maxTokens,
-      contextLength: template.contextLength,
-      lastTested: '从未',
-      description: newProvider.description || template.description,
-      modelPointer: newProvider.modelPointer,
-      priority: providers.length + 1
-    };
-
-    setProviders(prev => [...prev, provider]);
-    setShowAddDialog(false);
-    setNewProvider({ name: "", apiKey: "", modelName: "", baseUrl: "", template: "", description: "", modelPointer: null });
-
-    toast({
-      title: "添加成功",
-      description: "AI 提供商已添加，正在测试连接..."
-    });
-
-    // 自动测试连接
-    setTimeout(() => {
-      testProviderConnection(provider);
-    }, 1000);
-  };
-
-  // 处理模板选择
-  const handleTemplateChange = (templateName: string) => {
-    const template = PROVIDER_TEMPLATES.find(t => t.name === templateName);
-    if (template) {
-      setNewProvider(prev => ({
-        ...prev,
-        template: templateName,
-        name: template.name === "自定义" ? "" : `${template.name} 配置`,
-        modelName: template.defaultModel,
-        baseUrl: template.baseUrl || "",
-        description: template.description || ""
-      }));
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'connected':
-        return <Check className="w-4 h-4 text-green-600" />;
-      case 'testing':
-        return <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />;
-      case 'error':
-        return <AlertCircle className="w-4 h-4 text-red-600" />;
-      default:
-        return <AlertCircle className="w-4 h-4 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'connected':
-        return 'text-green-600';
-      case 'testing':
-        return 'text-purple-600';
-      case 'error':
-        return 'text-red-600';
-      default:
-        return 'text-gray-500';
+    } catch (error) {
+      toast({
+        title: "卸载失败",
+        description: error instanceof Error ? error.message : "未知错误",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <div className="p-6 space-y-6">
-      {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">AI 提供商</h1>
-          <p className="text-gray-600 mt-1">配置和管理 AI 模型提供商</p>
+          <h1 className="text-2xl font-semibold text-gray-900">AI 提供商市场</h1>
+          <p className="text-gray-600 mt-1">安装和管理精选的 AI 写作服务提供商</p>
         </div>
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center space-x-2">
-              <Plus className="w-4 h-4" />
-              <span>添加提供商</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>添加 AI 提供商</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="template">选择提供商模板</Label>
-                  <Select value={newProvider.template} onValueChange={handleTemplateChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择一个模板" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PROVIDER_TEMPLATES.map((template) => (
-                        <SelectItem key={template.name} value={template.name}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="name">配置名称</Label>
-                  <Input 
-                    id="name"
-                    value={newProvider.name}
-                    onChange={(e) => setNewProvider(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="输入配置名称"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="apiKey">API 密钥</Label>
-                  <Input 
-                    id="apiKey"
-                    type="password"
-                    value={newProvider.apiKey}
-                    onChange={(e) => setNewProvider(prev => ({ ...prev, apiKey: e.target.value }))}
-                    placeholder="输入 API 密钥"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="modelName">模型名称</Label>
-                  <Input 
-                    id="modelName"
-                    value={newProvider.modelName}
-                    onChange={(e) => setNewProvider(prev => ({ ...prev, modelName: e.target.value }))}
-                    placeholder="例如: gpt-4-turbo"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="baseUrl">Base URL（可选）</Label>
-                  <Input 
-                    id="baseUrl"
-                    value={newProvider.baseUrl}
-                    onChange={(e) => setNewProvider(prev => ({ ...prev, baseUrl: e.target.value }))}
-                    placeholder="自定义 API 端点，留空使用默认值"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="modelPointer">模型指针（可选）</Label>
-                  <Select value={newProvider.modelPointer || ''} onValueChange={(value) => setNewProvider(prev => ({ ...prev, modelPointer: (value as "main" | "task" | "inference") || null }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择模型指针类型" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">无指针</SelectItem>
-                      <SelectItem value="main">主模型</SelectItem>
-                      <SelectItem value="task">任务模型</SelectItem>
-                      <SelectItem value="inference">推理模型</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="description">描述（可选）</Label>
-                  <Textarea 
-                    id="description"
-                    value={newProvider.description}
-                    onChange={(e) => setNewProvider(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="添加描述信息"
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                  取消
-                </Button>
-                <Button onClick={addProvider}>
-                  添加提供商
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="搜索 AI 提供商..."
+              className="pl-9 w-64"
+            />
+          </div>
+        </div>
       </div>
 
-      {/* 提供商网格 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {providers.map((provider) => (
-          <Card key={provider.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${provider.bgColor}`}>
-                    <Brain className="w-6 h-6 text-white" />
+        {filtered.map((item) => {
+          const Icon = item.icon || Brain;
+          return (
+            <Card key={item.id} className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">{provider.name}</CardTitle>
-                    <p className="text-sm text-gray-600">{provider.modelName}</p>
+                    <CardTitle className="text-base font-semibold text-gray-900">
+                      {item.name}
+                    </CardTitle>
+                    <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600 inline-block mt-1">
+                      {item.category}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {getStatusIcon(provider.status)}
-                  <Badge variant="outline" className={getStatusColor(provider.status)}>
-                    {provider.statusText}
-                  </Badge>
-                  {provider.modelPointer && (
-                    <Badge variant="secondary" className="ml-1">
-                      {provider.modelPointer === 'main' && '主'}
-                      {provider.modelPointer === 'task' && '任务'}  
-                      {provider.modelPointer === 'inference' && '推理'}
-                    </Badge>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">{item.description}</p>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {item.isInstalled && (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">已安装</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {!item.isInstalled ? (
+                    <Button onClick={() => handleInstallClick(item.id)} className="flex items-center">
+                      <Download className="w-4 h-4 mr-2" />安装
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => uninstall(item.id)}
+                      className="border-red-300 text-red-600 hover:bg-red-50"
+                    >
+                      卸载
+                    </Button>
                   )}
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">最大 Token</span>
-                  <span className="text-gray-900">{provider.maxTokens.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">上下文长度</span>
-                  <span className="text-gray-900">{provider.contextLength.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">最后测试</span>
-                  <span className="text-gray-900">{provider.lastTested}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2 pt-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => testProviderConnection(provider)}
-                  disabled={provider.status === 'testing'}
-                  className="flex-1"
-                >
-                  <TestTube className="w-4 h-4 mr-2" />
-                  {provider.status === 'testing' ? '测试中...' : '测试连接'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => deleteProvider(provider.id)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
 
-      {/* 空状态 */}
-      {providers.length === 0 && (
+      {filtered.length === 0 && (
         <Card className="p-12 text-center">
           <Brain className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">暂无 AI 提供商</h3>
-          <p className="text-gray-600 mb-4">添加第一个 AI 提供商开始使用写作功能</p>
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                添加提供商
-              </Button>
-            </DialogTrigger>
-          </Dialog>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">未找到匹配的 AI 提供商</h3>
+          <p className="text-gray-600">请调整关键词后重试</p>
         </Card>
       )}
+
+      {/* API Key 输入对话框 */}
+      <Dialog open={apiKeyDialog.open} onOpenChange={(open) => setApiKeyDialog({ open, providerId: null })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              添加 {catalog.find(item => item.id === apiKeyDialog.providerId)?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="api_key">API Key *</Label>
+              <Input
+                id="api_key"
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="请输入您的 API Key"
+                autoFocus
+              />
+              <p className="text-sm text-muted-foreground">
+                API Key 将安全存储在本地配置中
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setApiKeyDialog({ open: false, providerId: null })}>
+                取消
+              </Button>
+              <Button onClick={install} disabled={!apiKey.trim()}>
+                安装
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

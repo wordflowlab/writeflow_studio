@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Heart, Edit, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import IconMapper from '@/components/ui/icon-mapper';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
@@ -50,7 +51,7 @@ export function ProjectList({ workspaceId, status = 'all', query = '' }: Project
       const order = (sort === 'name') ? 'ASC' : 'DESC';
       const sortCol = sort === 'name' ? 'name' : (sort === 'created' ? 'created_at' : 'updated_at');
       const res = await invoke('search_projects', {
-        workspace_id: wid,
+        workspaceId: wid,
         query: query || null,
         status: status === 'all' ? null : status,
         sort: sortCol,
@@ -95,7 +96,7 @@ export function ProjectList({ workspaceId, status = 'all', query = '' }: Project
         workspace_id: project.workspace_id,
         template_id: null,
       };
-      const newProject = await invoke('create_project', { project_data: duplicated });
+      const newProject = await invoke('create_project', { projectData: duplicated });
       setProjects(prev => [newProject as Project, ...prev]);
       toast({ title: '已复制', description: '项目副本已创建' });
     } catch (e: any) {
@@ -109,7 +110,7 @@ export function ProjectList({ workspaceId, status = 'all', query = '' }: Project
     }
 
     try {
-      await invoke('delete_project', { project_id: project.id });
+      await invoke('delete_project', { projectId: project.id });
       setProjects(prev => prev.filter(p => p.id !== project.id));
       toast({
         title: "成功",
@@ -169,7 +170,7 @@ export function ProjectList({ workspaceId, status = 'all', query = '' }: Project
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex justify-center items-center h-64">
         <div className="text-gray-500">加载中...</div>
       </div>
     );
@@ -178,7 +179,7 @@ export function ProjectList({ workspaceId, status = 'all', query = '' }: Project
   return (
     <div className="space-y-6">
       {/* 项目操作栏 */}
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">项目管理</h2>
           <p className="text-sm text-gray-600">
@@ -192,48 +193,47 @@ export function ProjectList({ workspaceId, status = 'all', query = '' }: Project
       </div>
 
       {/* 排序与分页 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+      <div className="flex justify-between items-center">
+        <div className="flex gap-2 items-center text-sm text-gray-600">
           <span>排序:</span>
-          <select className="border rounded px-2 py-1" value={sort} onChange={(e) => { setPage(1); setSort(e.target.value as any); }}>
+          <select className="px-2 py-1 rounded border" value={sort} onChange={(e) => { setPage(1); setSort(e.target.value as any); }}>
             <option value="recent">最近更新</option>
             <option value="created">创建时间</option>
             <option value="name">名称</option>
           </select>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex gap-2 items-center text-sm text-gray-600">
           <span>共 {total} 个</span>
-          <button className="px-2 py-1 border rounded disabled:opacity-50" disabled={page<=1} onClick={() => setPage(p => Math.max(1, p-1))}>上一页</button>
+          <button className="px-2 py-1 rounded border disabled:opacity-50" disabled={page<=1} onClick={() => setPage(p => Math.max(1, p-1))}>上一页</button>
           <span>{page}</span>
-          <button className="px-2 py-1 border rounded disabled:opacity-50" disabled={(page*pageSize) >= total} onClick={() => setPage(p => p+1)}>下一页</button>
+          <button className="px-2 py-1 rounded border disabled:opacity-50" disabled={(page*pageSize) >= total} onClick={() => setPage(p => p+1)}>下一页</button>
         </div>
       </div>
 
       {/* 项目列表 */}
       {projects.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+        <div className="py-12 text-center">
+          <div className="flex justify-center items-center mx-auto mb-4 w-24 h-24 bg-gray-100 rounded-full">
             <Plus className="w-12 h-12 text-gray-400" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">还没有项目</h3>
-          <p className="text-gray-500 mb-4">创建您的第一个项目开始写作</p>
+          <h3 className="mb-2 text-lg font-medium text-gray-900">还没有项目</h3>
+          <p className="mb-4 text-gray-500">创建您的第一个项目开始写作</p>
           <Button onClick={() => setShowCreateDialog(true)}>
             创建项目
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
+            <Card key={project.id} className="transition-shadow hover:shadow-lg">
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
+                <div className="flex justify-between items-start">
                   <div className="flex items-center space-x-3">
                     <div 
-                      className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
-                      style={{ backgroundColor: project.color }}
+                      className="flex justify-center items-center w-12 h-12 rounded-lg"
+                      style={{ backgroundColor: project.color || '#3b82f6' }}
                     >
-                      {/* 这里可以根据icon显示对应的图标 */}
-                      📁
+                      <IconMapper name={project.icon} className="w-5 h-5 text-white" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">{project.name}</h3>
@@ -253,18 +253,18 @@ export function ProjectList({ workspaceId, status = 'all', query = '' }: Project
               </CardHeader>
               
               <CardContent className="pt-0">
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                <p className="mb-4 text-sm text-gray-600 line-clamp-2">
                   {project.description || '暂无描述'}
                 </p>
                 
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                <div className="flex justify-between items-center mb-4 text-xs text-gray-500">
                   <span>{formatDate(project.updated_at)}</span>
                   <span>{project.documents_count} 个文档</span>
                 </div>
                 
                 {/* 进度条 */}
                 <div className="mb-4">
-                  <div className="flex items-center justify-between text-xs mb-1">
+                  <div className="flex justify-between items-center mb-1 text-xs">
                     <span className="text-gray-600">进度</span>
                     <span className="text-gray-600">{project.progress}%</span>
                   </div>
@@ -284,7 +284,7 @@ export function ProjectList({ workspaceId, status = 'all', query = '' }: Project
                     className="flex-1"
                     onClick={() => handleEditProject(project)}
                   >
-                    <Edit className="w-3 h-3 mr-1" />
+                    <Edit className="mr-1 w-3 h-3" />
                     编辑
                   </Button>
                   <Button
@@ -298,7 +298,7 @@ export function ProjectList({ workspaceId, status = 'all', query = '' }: Project
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteProject(project)}
-                    className="text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
+                    className="text-red-600 border-red-300 hover:text-red-700 hover:border-red-400"
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>

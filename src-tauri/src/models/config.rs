@@ -10,6 +10,9 @@ pub struct AppConfig {
     pub export: ExportConfig,
     pub writeflow: WriteFlowConfig,
     pub plugins: PluginConfig,
+    pub ai_providers: AIProvidersConfig,
+    pub mcp_servers: MCPServersConfig,
+    pub writing_preferences: WritingPreferencesConfig,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -105,6 +108,65 @@ pub struct PluginConfig {
     pub plugin_settings: HashMap<String, serde_json::Value>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIProvidersConfig {
+    pub providers: HashMap<String, AIProvider>,
+    pub default_provider: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIProvider {
+    pub name: String,
+    pub provider_type: String,
+    pub api_key: Option<String>,
+    pub api_base: Option<String>,
+    pub model: Option<String>,
+    pub max_tokens: Option<u32>,
+    pub temperature: Option<f32>,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MCPServersConfig {
+    pub servers: HashMap<String, MCPServer>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MCPServer {
+    pub name: String,
+    pub connection_type: MCPConnectionType,
+    pub command: Option<String>,
+    pub args: Option<Vec<String>>,
+    pub env: Option<HashMap<String, String>>,
+    pub url: Option<String>,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MCPConnectionType {
+    Stdio,
+    SSE,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WritingPreferencesConfig {
+    pub language: String,
+    pub writing_style: String,
+    pub tone: String,
+    pub target_audience: String,
+    pub scenarios: HashMap<String, WritingScenario>,
+    pub custom_prompts: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WritingScenario {
+    pub name: String,
+    pub description: String,
+    pub system_prompt: String,
+    pub temperature: f32,
+    pub max_tokens: u32,
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
@@ -171,6 +233,21 @@ impl Default for AppConfig {
             plugins: PluginConfig {
                 enabled_plugins: vec![],
                 plugin_settings: HashMap::new(),
+            },
+            ai_providers: AIProvidersConfig {
+                providers: HashMap::new(),
+                default_provider: None,
+            },
+            mcp_servers: MCPServersConfig {
+                servers: HashMap::new(),
+            },
+            writing_preferences: WritingPreferencesConfig {
+                language: "zh-CN".to_string(),
+                writing_style: "professional".to_string(),
+                tone: "neutral".to_string(),
+                target_audience: "general".to_string(),
+                scenarios: HashMap::new(),
+                custom_prompts: HashMap::new(),
             },
             updated_at: Utc::now(),
         }

@@ -10,7 +10,7 @@ pub async fn create_document(
     database
         .create_document(document_data)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| format!("创建文档失败: {}", e))
 }
 
 #[tauri::command]

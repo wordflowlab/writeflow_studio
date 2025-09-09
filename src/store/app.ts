@@ -48,6 +48,21 @@ export interface Config {
     default_template: string | null;
     custom_commands: Record<string, any>;
   };
+  ai_providers: {
+    providers: Record<string, AIProvider>;
+    default_provider: string | null;
+  };
+  mcp_servers: {
+    servers: Record<string, MCPServer>;
+  };
+  writing_preferences: {
+    language: string;
+    writing_style: string;
+    tone: string;
+    target_audience: string;
+    scenarios: Record<string, WritingScenario>;
+    custom_prompts: Record<string, string>;
+  };
   plugins: {
     enabled_plugins: string[];
     plugin_settings: Record<string, any>;
@@ -70,6 +85,35 @@ export interface SystemInfo {
   platform: string;
   arch: string;
   version: string;
+}
+
+export interface AIProvider {
+  name: string;
+  provider_type: string;
+  api_key?: string;
+  api_base?: string;
+  model?: string;
+  max_tokens?: number;
+  temperature?: number;
+  enabled: boolean;
+}
+
+export interface MCPServer {
+  name: string;
+  connection_type: 'Stdio' | 'SSE';
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  url?: string;
+  enabled: boolean;
+}
+
+export interface WritingScenario {
+  name: string;
+  description: string;
+  system_prompt: string;
+  temperature: number;
+  max_tokens: number;
 }
 
 interface Project {
@@ -134,6 +178,12 @@ interface AppStore {
   setDocuments: (documents: Document[]) => void;
   updateConfig: (config: Partial<Config>) => void;
   loadProjectData: () => Promise<void>;
+  refreshWorkspaces: () => Promise<void>;
+  // Configuration management
+  saveConfig: (config: Config) => Promise<void>;
+  testAIProvider: (provider: AIProvider) => Promise<boolean>;
+  testMCPServer: (server: MCPServer) => Promise<boolean>;
+  resetConfig: () => Promise<void>;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -195,11 +245,12 @@ export const useAppStore = create<AppStore>()(
         if (!state.currentWorkspaceId) return;
 
         // Import invoke dynamically to avoid issues during build
-        const { invoke } = await import("@tauri-apps/api/core");
+        const { invoke } = await import("@/lib/invokeCompat");
         
+        const wid = state.currentWorkspaceId;
         const projects = await invoke("get_projects_by_workspace", {
-          workspace_id: state.currentWorkspaceId
-        }) as Project[];
+          workspaceId: wid,
+        } as any) as Project[];
 
         set({ 
           projects,
@@ -209,12 +260,64 @@ export const useAppStore = create<AppStore>()(
         // Load recent documents if we have projects
         if (projects.length > 0) {
           const documents = await invoke("get_documents_by_project", {
-            project_id: projects[0].id
+            projectId: projects[0].id
           }) as Document[];
           set({ recentDocuments: documents.slice(0, 5) });
         }
       } catch (error) {
         console.error("Failed to load project data:", error);
+      }
+    },
+
+    refreshWorkspaces: async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const list = await invoke("get_workspaces") as Workspace[];
+        set({ workspaces: list });
+      } catch (error) {
+        console.error("Failed to load workspaces:", error);
+      }
+    },
+
+    saveConfig: async (config) => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("save_config", { config });
+        set({ config });
+      } catch (error) {
+        console.error("Failed to save config:", error);
+        throw error;
+      }
+    },
+
+    testAIProvider: async (provider) => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        return await invoke("test_ai_provider", { provider }) as boolean;
+      } catch (error) {
+        console.error("Failed to test AI provider:", error);
+        return false;
+      }
+    },
+
+    testMCPServer: async (server) => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        return await invoke("test_mcp_server", { server }) as boolean;
+      } catch (error) {
+        console.error("Failed to test MCP server:", error);
+        return false;
+      }
+    },
+
+    resetConfig: async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const defaultConfig = await invoke("reset_config") as Config;
+        set({ config: defaultConfig });
+      } catch (error) {
+        console.error("Failed to reset config:", error);
+        throw error;
       }
     },
   }))

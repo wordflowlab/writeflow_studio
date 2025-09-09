@@ -25,7 +25,9 @@ export default function WorkspaceCreateDialog({ open, onOpenChange, onCreated }:
     }
     setLoading(true);
     try {
-      const ws = await invoke('create_workspace', { workspace_data: { name: form.name.trim(), description: form.description.trim() } });
+      const payload = { name: form.name.trim(), description: form.description.trim() };
+      // 兼容不同命名（workspace_data / workspaceData）
+      const ws = await invoke('create_workspace', { workspaceData: payload });
       toast({ title: '创建成功' });
       onOpenChange(false);
       onCreated?.(ws);
@@ -43,7 +45,7 @@ export default function WorkspaceCreateDialog({ open, onOpenChange, onCreated }:
         <DialogHeader>
           <DialogTitle>新建工作区</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 pt-2">
+        <div className="pt-2 space-y-3">
           <div className="space-y-2">
             <Label htmlFor="ws-name">名称</Label>
             <Input id="ws-name" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder="例如：个人工作区" />
@@ -52,7 +54,7 @@ export default function WorkspaceCreateDialog({ open, onOpenChange, onCreated }:
             <Label htmlFor="ws-desc">描述</Label>
             <Textarea id="ws-desc" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} placeholder="可选" rows={3} />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>取消</Button>
             <Button onClick={submit} disabled={loading}>{loading ? '创建中...' : '创建'}</Button>
           </div>
@@ -61,4 +63,3 @@ export default function WorkspaceCreateDialog({ open, onOpenChange, onCreated }:
     </Dialog>
   );
 }
-

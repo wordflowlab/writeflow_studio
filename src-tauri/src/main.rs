@@ -61,12 +61,21 @@ async fn main() {
             agent::set_agent_enabled,
             agent::uninstall_agent,
             agent::update_agent_version,
+
+            // AI Providers
+            provider::list_ai_providers,
+            provider::create_ai_provider,
+            provider::delete_ai_provider,
+            provider::update_ai_provider,
             
             // Configuration
             config::get_config,
             config::save_config,
             config::import_config,
             config::export_config,
+            config::test_ai_provider,
+            config::test_mcp_server,
+            config::reset_config,
             
             // System utilities
             system::get_system_info,

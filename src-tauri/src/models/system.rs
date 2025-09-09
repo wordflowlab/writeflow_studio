@@ -149,6 +149,7 @@ impl Default for SystemSettings {
     }
 }
 
+#[allow(dead_code)]
 impl NotificationData {
     pub fn new(title: String, body: String, notification_type: NotificationType) -> Self {
         Self {

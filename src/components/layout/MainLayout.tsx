@@ -1,7 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-import Header from "./Header";
 import WelcomeWizard from "../onboarding/WelcomeWizard";
 import InteractiveTutorial from "../onboarding/InteractiveTutorial";
 import CommandPalette from "../search/CommandPalette";
@@ -58,27 +57,16 @@ export default function MainLayout() {
 
   return (
     <div className="h-screen flex overflow-hidden bg-gray-50">
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-10">
-        <Header 
-          onShowTutorial={() => setShowTutorial(true)}
-          onShowCommandPalette={() => setShowCommandPalette(true)}
-        />
+      {/* Sidebar */}
+      <div className="w-70 h-full fixed left-0 top-0">
+        <Sidebar />
       </div>
 
-      {/* Main container with sidebar and content */}
-      <div className="flex w-full pt-16">
-        {/* Sidebar */}
-        <div className="w-70 h-full fixed left-0 top-16">
-          <Sidebar />
-        </div>
-
-        {/* Main content area */}
-        <div className="flex-1 ml-70 h-full overflow-auto">
-          <main className="p-6">
-            <Outlet />
-          </main>
-        </div>
+      {/* Main content area */}
+      <div className="flex-1 ml-70 h-full overflow-auto">
+        <main className="p-6">
+          <Outlet />
+        </main>
       </div>
 
       {/* 新手引导对话框 */}
@@ -94,11 +82,8 @@ export default function MainLayout() {
         onOpenChange={setShowTutorial}
       />
 
-      {/* 命令面板 */}
-      <CommandPalette
-        open={showCommandPalette}
-        onOpenChange={setShowCommandPalette}
-      />
+      {/* 命令面板（仍保留快捷键支持）*/}
+      <CommandPalette open={showCommandPalette} onOpenChange={setShowCommandPalette} />
     </div>
   );
 }

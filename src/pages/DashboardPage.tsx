@@ -27,11 +27,15 @@ export function DashboardPage() {
     try {
       const s = (await invoke('get_environment_summary')) as EnvSummary;
       setEnv(s);
-    } catch {}
+    } catch (error) {
+      console.error('Failed to get environment summary:', error);
+    }
     try {
       const agents = (await invoke('list_agents')) as any[];
       setAgentCount(agents.length || 0);
-    } catch {}
+    } catch (error) {
+      console.error('Failed to list agents:', error);
+    }
     try {
       const ps = (await invoke('get_ai_provider_stats')) as any;
       setProviderStats({ connected: ps?.connected ?? 0, total: ps?.total ?? 0 });

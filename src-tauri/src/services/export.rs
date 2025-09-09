@@ -1,8 +1,10 @@
 // 导出服务模块
 // 用于导出文档到各种格式
 
+#[allow(dead_code)]
 pub struct ExportService;
 
+#[allow(dead_code)]
 impl ExportService {
     pub fn new() -> Self {
         Self

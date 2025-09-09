@@ -63,9 +63,9 @@ const configNavigation = [
   },
   {
     name: '配置管理',
-    href: '/config',
+    href: '/settings',
     icon: Settings,
-    disabled: true,
+    disabled: false,
   },
 ];
 

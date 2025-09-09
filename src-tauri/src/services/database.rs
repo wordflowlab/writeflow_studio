@@ -1,9 +1,10 @@
 use crate::models::{
-    project::{Project, CreateProjectData, ProjectStats, ProjectListResult, ProjectStatus},
+    project::{Project, CreateProjectData, ProjectListResult, ProjectStatus},
     workspace::{Workspace, CreateWorkspaceData},
     document::{Document, CreateDocumentData},
     config::AppConfig,
     agent::{AgentModel, InstallAgentInput},
+    provider::{AIProvider, CreateAIProviderInput},
 };
 use sqlx::{SqlitePool, Row};
 use tokio::fs;
@@ -137,6 +138,31 @@ impl Database {
                 enabled INTEGER NOT NULL DEFAULT 1,
                 description TEXT,
                 tags TEXT NOT NULL -- JSON array
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // AI Providers table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS ai_providers (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                model_name TEXT NOT NULL,
+                api_key TEXT NOT NULL,
+                base_url TEXT,
+                icon TEXT NOT NULL,
+                bg_color TEXT NOT NULL,
+                status TEXT NOT NULL,
+                status_text TEXT NOT NULL,
+                max_tokens INTEGER NOT NULL,
+                context_length INTEGER NOT NULL,
+                last_tested TEXT NOT NULL,
+                description TEXT,
+                priority INTEGER NOT NULL,
+                model_pointer TEXT
             )
             "#,
         )
@@ -342,6 +368,11 @@ impl Database {
 
     // Document operations
     pub async fn create_document(&self, data: CreateDocumentData) -> Result<Document> {
+        // 验证项目是否存在
+        if self.get_project_by_id(&data.project_id).await?.is_none() {
+            anyhow::bail!(format!("Project not found: {}", data.project_id));
+        }
+
         let document = Document::new(data);
         
         sqlx::query(
@@ -365,7 +396,11 @@ impl Database {
         .bind(document.updated_at.to_rfc3339())
         .bind(document.last_accessed.to_rfc3339())
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| {
+            println!("SQL error inserting document (project_id={}): {}", document.project_id, e);
+            e
+        })?;
 
         // Update project documents count and words count
         sqlx::query("UPDATE projects SET documents_count = documents_count + 1, words_count = words_count + ?1 WHERE id = ?2")
@@ -415,9 +450,24 @@ impl Database {
 
         if let Some(row) = row {
             let config_str: String = row.get("config_data");
-            let config: AppConfig = serde_json::from_str(&config_str)?;
-            Ok(Some(config))
+            println!("Loading config from database, length: {} chars", config_str.len());
+            
+            match serde_json::from_str::<AppConfig>(&config_str) {
+                Ok(config) => {
+                    println!("Successfully parsed config with {} AI providers, {} MCP servers", 
+                        config.ai_providers.providers.len(),
+                        config.mcp_servers.servers.len()
+                    );
+                    Ok(Some(config))
+                },
+                Err(e) => {
+                    println!("Failed to parse config from database: {}. Using default config.", e);
+                    // 如果解析失败，可能是旧版本的配置，返回 None 让上层创建默认配置
+                    Ok(None)
+                }
+            }
         } else {
+            println!("No config found in database, will create default");
             Ok(None)
         }
     }
@@ -716,6 +766,112 @@ impl Database {
             .bind(version)
             .execute(&self.pool)
             .await?;
+        Ok(())
+    }
+
+    // AI Provider operations
+    pub async fn list_ai_providers(&self) -> Result<Vec<AIProvider>> {
+        let rows = sqlx::query("SELECT * FROM ai_providers ORDER BY priority ASC, name ASC")
+            .fetch_all(&self.pool)
+            .await?;
+        let mut items = Vec::new();
+        for row in rows {
+            items.push(AIProvider {
+                id: row.get("id"),
+                name: row.get("name"),
+                model_name: row.get("model_name"),
+                api_key: row.get("api_key"),
+                base_url: row.get("base_url"),
+                icon: row.get("icon"),
+                bg_color: row.get("bg_color"),
+                status: row.get("status"),
+                status_text: row.get("status_text"),
+                max_tokens: row.get::<i64, _>("max_tokens"),
+                context_length: row.get::<i64, _>("context_length"),
+                last_tested: row.get("last_tested"),
+                description: row.get("description"),
+                priority: row.get::<i64, _>("priority"),
+                model_pointer: row.get("model_pointer"),
+            });
+        }
+        Ok(items)
+    }
+
+    pub async fn create_ai_provider(&self, input: CreateAIProviderInput) -> Result<AIProvider> {
+        let id = format!("prov-{}", uuid::Uuid::new_v4());
+        let provider = AIProvider {
+            id: id.clone(),
+            name: input.name,
+            model_name: input.model_name,
+            api_key: input.api_key,
+            base_url: input.base_url,
+            icon: input.icon,
+            bg_color: input.bg_color,
+            status: "testing".to_string(),
+            status_text: "测试中...".to_string(),
+            max_tokens: input.max_tokens,
+            context_length: input.context_length,
+            last_tested: "从未".to_string(),
+            description: input.description,
+            priority: input.priority,
+            model_pointer: input.model_pointer,
+        };
+
+        sqlx::query(
+            r#"INSERT INTO ai_providers (id, name, model_name, api_key, base_url, icon, bg_color, status, status_text, max_tokens, context_length, last_tested, description, priority, model_pointer)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)"#
+        )
+        .bind(&provider.id)
+        .bind(&provider.name)
+        .bind(&provider.model_name)
+        .bind(&provider.api_key)
+        .bind(&provider.base_url)
+        .bind(&provider.icon)
+        .bind(&provider.bg_color)
+        .bind(&provider.status)
+        .bind(&provider.status_text)
+        .bind(provider.max_tokens)
+        .bind(provider.context_length)
+        .bind(&provider.last_tested)
+        .bind(&provider.description)
+        .bind(provider.priority)
+        .bind(&provider.model_pointer)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(provider)
+    }
+
+    pub async fn delete_ai_provider(&self, id: &str) -> Result<()> {
+        sqlx::query("DELETE FROM ai_providers WHERE id = ?1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_ai_provider(&self, provider: &AIProvider) -> Result<()> {
+        sqlx::query(
+            r#"UPDATE ai_providers SET name=?2, model_name=?3, api_key=?4, base_url=?5, icon=?6, bg_color=?7,
+                status=?8, status_text=?9, max_tokens=?10, context_length=?11, last_tested=?12, description=?13, priority=?14, model_pointer=?15 WHERE id=?1"#
+        )
+        .bind(&provider.id)
+        .bind(&provider.name)
+        .bind(&provider.model_name)
+        .bind(&provider.api_key)
+        .bind(&provider.base_url)
+        .bind(&provider.icon)
+        .bind(&provider.bg_color)
+        .bind(&provider.status)
+        .bind(&provider.status_text)
+        .bind(provider.max_tokens)
+        .bind(provider.context_length)
+        .bind(&provider.last_tested)
+        .bind(&provider.description)
+        .bind(provider.priority)
+        .bind(&provider.model_pointer)
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 

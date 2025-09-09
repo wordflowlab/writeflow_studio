@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/invokeCompat";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import MainLayout from "@/components/layout/MainLayout";
@@ -32,7 +32,8 @@ function App() {
         let workspaces = await invoke("get_workspaces") as Workspace[];
         if (!workspaces || workspaces.length === 0) {
           // 首次运行自动创建默认工作区
-          await invoke('create_workspace', { workspace_data: { name: '默认工作区', description: '默认工作区' } });
+          const payload = { name: '默认工作区', description: '默认工作区' };
+          await invoke('create_workspace', { workspaceData: payload });
           workspaces = await invoke("get_workspaces") as Workspace[];
         }
         const systemInfo = await invoke("get_system_info") as SystemInfo;
@@ -52,7 +53,7 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="writeflow-ui-theme">
-      <div className="min-h-screen bg-background font-sans antialiased">
+      <div className="min-h-screen font-sans antialiased bg-background">
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<DashboardPage />} />

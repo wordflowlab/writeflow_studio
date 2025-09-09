@@ -7,7 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { invoke } from '@/lib/tauri';
+import { invoke } from '@/lib/invokeCompat';
+import { useAppStore } from '@/store/app';
+import { ProjectIcon } from '@/components/ui/project-icon';
 
 interface ProjectType {
   value: string;
@@ -48,6 +50,7 @@ export function ProjectCreateDialog({
   workspaceId,
   onProjectCreated
 }: ProjectCreateDialogProps) {
+  const { currentWorkspace, workspaces } = useAppStore();
   const [formData, setFormData] = useState({
     name: '',
     type: 'academic',
@@ -59,6 +62,8 @@ export function ProjectCreateDialog({
   const handleTypeChange = (value: string) => {
     setFormData(prev => ({ ...prev, type: value }));
   };
+
+  const selectedType = PROJECT_TYPES.find(t => t.value === formData.type);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +77,8 @@ export function ProjectCreateDialog({
       return;
     }
 
-    if (!workspaceId) {
+    const effectiveWorkspaceId = workspaceId || currentWorkspace?.id || workspaces[0]?.id;
+    if (!effectiveWorkspaceId) {
       toast({ title: '缺少工作区', description: '请先选择一个工作区再创建项目', variant: 'destructive' });
       return;
     }
@@ -87,11 +93,11 @@ export function ProjectCreateDialog({
         description: formData.description.trim(),
         icon: selectedType.icon,
         color: selectedType.color,
-        workspace_id: workspaceId,
+        workspace_id: effectiveWorkspaceId,
         template_id: null,
       };
 
-      const newProject = await invoke('create_project', { project_data: projectData });
+      const newProject = await invoke('create_project', { projectData: projectData });
       
       toast({
         title: "成功",
@@ -145,7 +151,7 @@ export function ProjectCreateDialog({
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+        <form onSubmit={handleSubmit} className="pt-4 space-y-6">
           <div className="space-y-4">
             {/* 项目名称 */}
             <div className="space-y-2">
@@ -170,12 +176,28 @@ export function ProjectCreateDialog({
                 disabled={isCreating}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="选择项目类型" />
+                  <div className="flex gap-2 items-center">
+                    {selectedType && (
+                      <ProjectIcon 
+                        iconName={selectedType.icon}
+                        className="w-4 h-4"
+                        color={selectedType.color}
+                      />
+                    )}
+                    <SelectValue placeholder="选择项目类型" />
+                  </div>
                 </SelectTrigger>
                 <SelectContent>
                   {PROJECT_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                      <div className="flex gap-2 items-center">
+                        <ProjectIcon 
+                          iconName={type.icon}
+                          className="w-4 h-4"
+                          color={type.color}
+                        />
+                        <span>{type.label}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -197,7 +219,7 @@ export function ProjectCreateDialog({
           </div>
 
           {/* 按钮组 */}
-          <div className="flex justify-end space-x-3 pt-4 border-t">
+          <div className="flex justify-end pt-4 space-x-3 border-t">
             <Button
               type="button"
               variant="outline"
